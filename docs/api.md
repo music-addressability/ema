@@ -39,9 +39,6 @@ The `staves` parameter can be expressed either as a range, or as a comma-separat
 
 The keywords `start` and `end` can be used to indicate the first and last staff. For example `start-end` selects all the staves.
 
-Staves can also be addressed via their label by introducing the prefix `lbs:`. For example, given a choral with four staves labelled Soprano, Alto, Tenor, and Bass, the following string selects the first two staves:
-`lbs:Soprano,Alto`.
-
 #### Beats
 
 The `beats` parameter expresses a ranges of beats. This must be a range, even when only one beat is selected. The first and second parts of the range are in the context, respectively, of the first and and last measures expressed in the `measures` parameter. For example, given a `measures` parameter of `1-2` an a `beats` parameter of `1-1`, the selection goes from the first beat in measure 1 to the first beat in measure 2. 
@@ -136,8 +133,8 @@ Name | Type | Description
 -----|------|------------
 measures | integer | The number of all measures in the files. Repeated measures must not be counted.
 measure_labels | array of strings | an array of measure labels to facilitate human readable selection. For example there can be two measures with label "1", but with different indexes. The array index of each label corresponds to the absolute measure number. 
-staves | object | This object contains all changes in staves and the measure at which the change happens. The measure number is the key and value is an array of staff labels. For example `{"1":["Soprano", "Alto", "Tenor", "Bass"]}` indicates that there are 4 staves at measure 1, and their labels. The absence of other items indicates that there is no change of stave numbers throughout the piece.
-beats | object | This object contains all changes in number of beats and the measure at which the change happens. The measure number is the key and the number of beats is the value. For example `{"1":4}` indicates that there are 4 beats at measure 1. The absence of other items indicates that there is no change of beat numbers throughout the piece.
+staves | object | This object contains all changes in staves and the measure at which the change happens. The measure number is the key and value is an array of staff labels. For example `{"0":["Soprano", "Alto", "Tenor", "Bass"]}` indicates that there are 4 staves at measure 1, and their labels. The absence of other items indicates that there is no change of stave numbers throughout the piece.
+beats | object | This object contains all changes in number of beats and the measure at which the change happens. The measure number is the key and the number of beats is the value. For example `{"0":4}` indicates that there are 4 beats at measure 1. The absence of other items indicates that there is no change of beat numbers throughout the piece.
 operations | array of strings | List of supported operations corresponding to the parameter `completeness` of the selection URI.
 
 #### Example response
@@ -150,8 +147,8 @@ Content-Type: application/json
 { 
   "measures": 4, 
   "measure_labels": ["1","2","3","4"],
-  "staves": {"1" : ["Soprano", "Alto", "Tenor", "Bass"]},
-  "beats" : {"1" : 4},
+  "staves": {"0" : ["Soprano", "Alto", "Tenor", "Bass"]},
+  "beats" : {"0" : 4},
   "completeness" : ["raw", "signature", "nospace", "cut"]
 }
 ```
