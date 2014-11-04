@@ -1,0 +1,15 @@
+Flask==0.10.1
+Flask-RESTful==0.2.12
+Jinja2==2.7.3
+MarkupSafe==0.23
+Werkzeug==0.9.6
+aniso8601==0.83
+argparse==1.2.1
+itsdangerous==0.24
+py==1.4.25
+pymei==2.0
+pytest==2.6.3
+pytz==2014.9
+requests==2.4.3
+six==1.8.0
+wsgiref==0.1.2
