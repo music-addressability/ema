@@ -29,7 +29,7 @@ completeness | string | **Optional**. Specifies how complete the returned select
 
 #### Measures
 
-The `measures` parameter expresses either the index of one measure or a range of indexes of contiguous measures. For example `1` indicates the first measure in the document; `20-25` indicates five measures, starting from the twentieth and ending at the twenty-fifth. 
+The `measures` parameter expresses either the index of one measure or a range of indexes of contiguous measures. For example `1` indicates the first measure in the document; `20-25` indicates six measures, starting from the twentieth and ending at the twenty-fifth. 
 
 The keywords `start` and `end` can be used to indicate the first and last measure. For example `10-end` selects all the measures from the tenth to the last measure in the document.
 
