@@ -4,10 +4,27 @@ from flask.ext.restful import reqparse, abort, Api, Resource
 from omas import omas
 
 from pymei import XmlImport
-from musdocinfo import MusDocInfo
+from meiinfo import MusDocInfo
+from meislicer import MeiSlicer
 
 from urlparse import urlparse
 import requests
+
+from werkzeug.routing import BaseConverter, ValidationError
+
+class OneOrRangeConverter(BaseConverter):
+
+    def __init__(self, url_map):
+        super(OneOrRangeConverter, self).__init__(url_map)
+        self.regex = '(?:\d+(-\d+)?)'
+
+    def to_python(self, value):        
+        return value
+
+    def to_url(self, value):
+        return value
+
+omas.url_map.converters['oner'] = OneOrRangeConverter
 
 def read_MEI(MEI_id):
     """Get MEI file from its identifier, which can be ark, URN, filename, 
@@ -37,11 +54,16 @@ class Information(Resource):
         meiDoc = read_MEI(MEI_id)
         return jsonify(MusDocInfo(meiDoc).get())
 
-class Test(Resource):
-    def get(self, fun):
-        return fun
+class Address(Resource):
+    """Parse an addressing URL and return portion of MEI"""
+    def get(self, MEI_id, measures, staves, beats, completeness=None):
+        print 'here'
+        meiDoc = read_MEI(MEI_id)
+        return MeiSlicer(meiDoc, measures, staves, beats, completeness).slice()
+
 
 # Instantiate Api handler and add routes
 api = Api(omas)
 api.add_resource(Information, '/<path:MEI_id>/info.json')
-api.add_resource(Test, '/test/<string:fun>')
+api.add_resource(Address, '/<path:MEI_id>/<oner:measures>/<oner:staves>/<oner:beats>',
+                 '/<path:MEI_id>/<oner:measures>/<oner:staves>/<oner:beats>/<completeness>')
