@@ -3,7 +3,6 @@
 import re
 import json
 import pymeiext
-from pymei import MeiDocument
 
 class MusDocInfo(object):
     """An object storing information from an MEI file needed for the EMA API."""
