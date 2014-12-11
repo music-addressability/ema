@@ -2,7 +2,7 @@ import pytest
 
 import os
 from pymei import XmlImport
-from meiinfo import MusDocInfo
+from omas.meiinfo import MusDocInfo
 
 def test_DC_file():
 	meiDoc = XmlImport.documentFromFile(os.path.join("..", "data", "DC0101.mei"))
