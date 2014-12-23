@@ -71,7 +71,7 @@ class Address(Resource):
     """Parse an addressing URL and return portion of MEI"""
     def get(self, MEI_id, measures, staves, beats, completeness=None):
         meiDoc = read_MEI(MEI_id)
-        return str(MeiSlicer(meiDoc, measures, staves, beats, completeness).staves)
+        return MeiSlicer(meiDoc, measures, staves, beats, completeness).select()
 
 
 # Instantiate Api handler and add routes
