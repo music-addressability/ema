@@ -105,17 +105,21 @@ class MusDocInfo(object):
                 sys.exit("Could not locate measure after new score definition (scoreDef)")
 
             # Process for beat data if the scoreDef defines meter
-            count_att = sd.getAttribute("meter.count")            
-            if count_att:
-                beats[str(m_pos)] = int(count_att.getValue())
+            count_att = sd.getAttribute("meter.count")
+            unit_att = sd.getAttribute("meter.unit")
+            if count_att and unit_att:
+                beats[str(m_pos)] = {"count" : int(count_att.getValue())}
+                beats[str(m_pos)]["unit"] = int(unit_att.getValue())
             else:
                 count_elm = sd.getDescendantsByName("meterSig")
                 if count_elm:
                     if len(count_elm) > 1:
                         sys.exit("Mixed meter is not supported, exiting.")
                     count = count_elm[0].getAttribute("count")
-                    if count:
-                        beats[str(m_pos)] = int(count.getValue())
+                    unit = count_elm[0].getAttribute("unit")
+                    if count and unit:
+                        beats[str(m_pos)] = {"count" : int(count.getValue())}
+                        beats[str(m_pos)]["unit"] = int(unit.getValue())
                     else:
                         sys.exit("Could not locate meter and compute beats.")
 
