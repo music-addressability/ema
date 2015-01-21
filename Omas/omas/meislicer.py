@@ -101,6 +101,7 @@ class MeiSlicer(object):
     @property
     def beats(self):
         tstamps = self.requested_beats.split("-")
+        m_idxs = self._parseRanges(self.requested_measures)
 
         # According to the API, the beat selection must be a range,
         # even when only one beat is selected.
@@ -112,15 +113,18 @@ class MeiSlicer(object):
 
         beatsInfo = self.docInfo["beats"]
 
-        meter_first = 0
-        meter_final = 0
+        meter_first = None
+        meter_final = None
 
-        if len(beatsInfo) > 1:
-            #TODO
-            return "many beats"
-        else:
-            meter_first = beatsInfo["0"]
-            meter_final = beatsInfo["0"]
+        # get the closest beat info to the index of each measure
+        timeChanges = beatsInfo.keys()
+        timeChanges.sort(key=int)
+        for change in timeChanges:
+            print change
+            if int(change) <= m_idxs[0]:
+                meter_first = beatsInfo[change]
+            if int(change) <= m_idxs[-1]:
+                meter_final = beatsInfo[change]
 
         # check that the requested beat actually fits in the meter
         if tstamp_first > int(meter_first["count"]) or tstamp_final > int(meter_final["count"]):
