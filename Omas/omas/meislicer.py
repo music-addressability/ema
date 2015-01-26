@@ -120,7 +120,6 @@ class MeiSlicer(object):
         timeChanges = beatsInfo.keys()
         timeChanges.sort(key=int)
         for change in timeChanges:
-            print change
             if int(change) <= m_idxs[0]:
                 meter_first = beatsInfo[change]
             if int(change) <= m_idxs[-1]:
@@ -170,6 +169,7 @@ class MeiSlicer(object):
         mm = self.musicEl.getDescendantsByName("measure")
         table = {}
 
+        # Template of table dictionary (for reference):
         # {
         #     "_targetMeasureID_" : {
         #         "_eventID_" : {
@@ -238,20 +238,51 @@ class MeiSlicer(object):
         return table
 
     def select(self):
-        
-        # Temporarily build example tree
-        root = MeiElement("section")
+        """ This method applies the selection and returns the selected MEI. """
 
-        for m in self.beats:
-            # Temporarily re-build measures
-            temp_container = MeiElement("measure")
-            for staff in m["on"]:
-                temp_container.addChild(staff)
-            for el in m["around"]:
-                temp_container.addChild(el)
-            root.addChild(temp_container)
+        mm = self.measures
 
-        return XmlExport.meiElementToText(root)
+        # Go through the children of selected measures. 
+        # Keep those matching elements in m["on"] and m["around"].
+
+        selected = self.beats
+
+        for i, m in enumerate(mm):
+            for el in m.getChildren():
+                if el not in selected[i]["on"] and el not in selected[i]["around"]:
+                    m.removeChild(el)
+
+        # Then recursively remove all unwanted siblings of selected measures.
+        # TODO: Take completeness parameter into account.
+
+        def _removeBefore(curEl):
+            parent = curEl.getParent()
+            if parent:
+                for el in curEl.getPeers():
+                    if el == curEl:
+                        break
+                    else:
+                        parent.removeChild(el)
+                return _removeBefore(parent)
+            return curEl
+
+        def _removeAfter(curEl):
+            parent = curEl.getParent()
+            if parent:
+                removing = False
+                for el in curEl.getPeers():
+                    if removing:
+                        parent.removeChild(el)
+                    elif el == curEl: 
+                        removing = True
+                return _removeAfter(parent)
+            return curEl
+
+        # Apply
+        _removeBefore(mm[0])
+        _removeAfter(mm[-1])
+
+        return XmlExport.meiElementToText(self.meiDoc.getRootElement())
 
 
     #TODO add support for keywords "start" and "end"
