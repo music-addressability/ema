@@ -94,7 +94,7 @@ class MeiSlicer(object):
                     # and attach to "around" data of first measure
                     selected[0]["around"].append(event)
 
-                    # TODO truncate to end at end of range
+                    # TODO truncate to end at end of range (depending on completeness reqs)
 
         return selected
 
@@ -134,15 +134,30 @@ class MeiSlicer(object):
 
         # TODO: beware of @duration.default - though not very common
 
+        def _calculateDur(element):
+            duration = element.getAttribute("dur").getValue()
+            dots = 0
+            if element.getAttribute("dots"):
+                dots = int(element.getAttribute("dots").getValue())
+            elif element.getChildrenByName("dot"):
+                dots = len(element.getChildrenByName("dot"))
+
+            dotsvalue = duration
+            for d in range(1, int(dots)+1):
+                dotsvalue = dotsvalue * 2
+                duration += dotsvalue
+
+            return duration
+
         # Start by counting durations of on-staff elements
         for staff in data_first["on"]:
             # Find all descendants with att.duration.musical (@dur)
             cur_beat = 0.0
             for el in staff.getDescendants():
-                if el.hasAttribute("dur"):
-                    # TODO DEAL WITH DOTS
-                    cur_beat += float(int(meter_first["unit"]) / float(el.getAttribute("dur").getValue()))
-                    # exclude those before tstamp
+                if el.hasAttribute("dur"):                    
+                    dur = _calculateDur(el)
+                    cur_beat += float(int(meter_first["unit"]) / float(dur))
+                    # exclude descendants before tstamp
                     if cur_beat <= tstamp_first: 
                         el.getParent().removeChild(el)
 
@@ -156,9 +171,9 @@ class MeiSlicer(object):
             cur_beat = 0.0
             for el in staff.getDescendants():
                 if el.hasAttribute("dur"):
-                    # TODO DEAL WITH DOTS
-                    cur_beat += float(int(meter_final["unit"]) / float(el.getAttribute("dur").getValue()))
-                    # exclude those after tstamp
+                    dur = _calculateDur(el)
+                    cur_beat += float(int(meter_final["unit"]) / float(dur))
+                    # exclude decendants after tstamp
                     if cur_beat > tstamp_final: 
                         el.getParent().removeChild(el)
 
