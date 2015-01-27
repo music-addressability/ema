@@ -297,7 +297,7 @@ class MeiSlicer(object):
         _removeBefore(mm[0])
         _removeAfter(mm[-1])
 
-        return XmlExport.meiElementToText(self.meiDoc.getRootElement())
+        return self.meiDoc
 
 
     #TODO add support for keywords "start" and "end"
