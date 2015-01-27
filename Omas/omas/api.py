@@ -1,9 +1,9 @@
 # coding=UTF-8
-from flask import jsonify
+from flask import jsonify, send_from_directory
 from flask.ext.restful import reqparse, abort, Api, Resource
 from omas import omas
 
-from pymei import XmlImport
+from pymei import XmlImport, XmlExport
 from meiinfo import MusDocInfo
 from meislicer import MeiSlicer
 
@@ -71,7 +71,9 @@ class Address(Resource):
     """Parse an addressing URL and return portion of MEI"""
     def get(self, MEI_id, measures, staves, beats, completeness=None):
         meiDoc = read_MEI(MEI_id)
-        return MeiSlicer(meiDoc, measures, staves, beats, completeness).select()
+        XmlExport.meiDocumentToFile(MeiSlicer(meiDoc, measures, staves, beats, completeness).select(), "/tmp/mei.mei")
+
+        return send_from_directory("/tmp", "mei.mei", as_attachment=True, mimetype="application/xml")
 
 
 # Instantiate Api handler and add routes
