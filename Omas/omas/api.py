@@ -8,6 +8,7 @@ from meiinfo import MusDocInfo
 from meislicer import MeiSlicer
 
 from urlparse import urlparse
+from urllib import unquote
 import requests
 
 from werkzeug.routing import BaseConverter, ValidationError
@@ -50,7 +51,7 @@ def read_MEI(MEI_id):
     url = urlparse(MEI_id)
     if url.scheme == "http" or url.scheme == "https":
         try:
-            mei_as_text = requests.get(MEI_id, timeout=15).content
+            mei_as_text = requests.get(unquote(MEI_id), timeout=15).content
         except Exception, ex:
             abort(404)
     else:
