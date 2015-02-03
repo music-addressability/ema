@@ -1,4 +1,5 @@
 from meiinfo import MusDocInfo
+from flask.ext.restful import abort
 import re
 
 from pymei import XmlExport, MeiElement #for testing
@@ -50,21 +51,29 @@ class MeiSlicer(object):
                 if staff.hasAttribute("n"):
                     if int(staff.getAttribute("n").getValue()) in s_nos:
                         data["on"].append(staff)
+                    else:
+                    # It is legal in MEI to omit a staff if empty or omitted from score. 
+                        data["on"].append(None)
             if not data["on"]:
                 staves = m.getDescendantsByName("staff")
                 for n in s_nos:
                     if len(staves) >= n:
                         data["on"].append(staves[n])
-            # fail if all staves could not be retrieved
+            
             if len(data["on"]) != len(s_nos):
-                return "Could not retrieve requested staves - aborting 400"
+                abort(400, error="400", message="Could not retrieve requested staves")
 
             ## Getting events AROUND a staff ##
 
             for el in m.getChildren():
                 #TODO: CAREFUL - EDITORIAL MARKUP MAY OBFUSCATE THIS
                 if el.hasAttribute("staff"):
-                    if int(el.getAttribute("staff").getValue()) in s_nos:
+                    # Split value of @staff, as it may contain multiple values.
+                    values = el.getAttribute("staff").getValue().split()
+                    values = [ int(x) for x in values ]
+
+                    # Then check that any of the values are in s_nos.
+                    if len(set(values).intersection(s_nos)) > 0:
                         data["around"].append(el)
 
             selected.append(data)
@@ -106,7 +115,7 @@ class MeiSlicer(object):
         # According to the API, the beat selection must be a range,
         # even when only one beat is selected.
         if len(tstamps) != 2:
-            return "invalid beat range - return 400"
+            abort(400, error="400", message="Invalid beat range")
 
         tstamp_first = int(tstamps[0])
         tstamp_final = int(tstamps[1])
@@ -127,10 +136,11 @@ class MeiSlicer(object):
 
         # check that the requested beat actually fits in the meter
         if tstamp_first > int(meter_first["count"]) or tstamp_final > int(meter_final["count"]):
-            return "request beat is out of measure bounds - return 400"
+            abort(400, error="400", message="Request beat is out of measure bounds")
 
         # FIRST MEASURE
-        data_first = self.staves[0]
+        staves = self.staves
+        data_first = staves[0]
 
         # TODO: beware of @duration.default - though not very common
 
@@ -153,29 +163,31 @@ class MeiSlicer(object):
         for staff in data_first["on"]:
             # Find all descendants with att.duration.musical (@dur)
             cur_beat = 0.0
-            for el in staff.getDescendants():
-                if el.hasAttribute("dur"):                    
-                    dur = _calculateDur(el)
-                    cur_beat += float(int(meter_first["unit"]) / float(dur))
-                    # exclude descendants before tstamp
-                    if cur_beat <= tstamp_first: 
-                        el.getParent().removeChild(el)
+            if staff: #staves can also be "silent"
+                for el in staff.getDescendants():
+                    if el.hasAttribute("dur"):                    
+                        dur = _calculateDur(el)
+                        cur_beat += float(int(meter_first["unit"]) / float(dur))
+                        # exclude descendants before tstamp
+                        if cur_beat <= tstamp_first: 
+                            el.getParent().removeChild(el)
 
 
         # LAST MEASURE
-        data_first = self.staves[-1]
+        data_first = staves[-1]
 
         # Start by counting durations of on-staff elements
         for staff in data_first["on"]:
             # Find all descendants with att.duration.musical (@dur)
             cur_beat = 0.0
-            for el in staff.getDescendants():
-                if el.hasAttribute("dur"):
-                    dur = _calculateDur(el)
-                    cur_beat += float(int(meter_final["unit"]) / float(dur))
-                    # exclude decendants after tstamp
-                    if cur_beat > tstamp_final: 
-                        el.getParent().removeChild(el)
+            if staff: #staves can also be "silent"
+                for el in staff.getDescendants():
+                    if el.hasAttribute("dur"):
+                        dur = _calculateDur(el)
+                        cur_beat += float(int(meter_final["unit"]) / float(dur))
+                        # exclude decendants after tstamp
+                        if cur_beat > tstamp_final: 
+                            el.getParent().removeChild(el)
 
         return self.staves
 
@@ -314,6 +326,6 @@ class MeiSlicer(object):
             elif length == 2:
                 ranges += range(int(values[0]), int(values[1])+1)
             else:
-                return "invalid range - return 400"
+                abort(400, error="400", message="Invalid range format")
 
         return ranges
