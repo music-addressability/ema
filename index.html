@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Omas</title>
+
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>   
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+</head>
+
+<body>
+  <div class="container">
+    <div>
+      <h1>Omas</h1>
+      <h2>Open MEI addressability service</h2>
+    </div>
+    <div class="row" id="main">
+      <div class="col-md-6">
+      	<form id="requestInfo" class="well well-sm">
+				  <div class="form-group">
+				    <label for="meiUrl">MEI location</label>
+				    <input type="url" class="form-control" id="meiUrl" value="http://music-encoding.org/sampleCollection/encodings/Layout_information.xml">
+				  </div>
+				  <button type="submit" class="btn btn-default">Request info</button>
+				</form>
+				<form id="sendSelection" class="well well-sm">
+				  <div class="form-group">
+				    <label>Begin selection at</label>
+				    <div class="row">
+				    	<div class="col-xs-4">Measure</div>
+				    	<div class="col-xs-2">
+				    		<input type="text" class="form-control" id="startM" value="1">
+				    	</div>
+				    	<div class="col-xs-6"></div>
+				    </div>
+				    <div class="row">
+				    	<div class="col-xs-4">From beat</div>
+				    	<div class="col-xs-2">
+				    		<input type="text" class="form-control" id="startB" value="1">
+				    	</div>
+				    	<div class="col-xs-6"></div>
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <label>End selection at</label>
+				    <div class="row">
+				    	<div class="col-xs-4">Measure</div>
+				    	<div class="col-xs-2">
+				    		<input type="text" class="form-control" id="endM" value="1">
+				    	</div>
+				    	<div class="col-xs-6"></div>
+				    </div>
+				    <div class="row">
+				    	<div class="col-xs-4">From beat</div>
+				    	<div class="col-xs-2">
+				    		<input type="text" class="form-control" id="endB" value="1">
+				    	</div>
+				    	<div class="col-xs-6"></div>
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <div class="row">
+				    	<div class="col-xs-4"><label>Staves</label></div>
+				    	<div class="col-xs-2">
+				    		<input type="text" class="form-control" id="staves" value="1,3">
+				    	</div>
+				    	<div class="col-xs-6"></div>
+				    </div>
+				    <div class="row">
+				      <div class="col-xs-12"><small>list staves separated by a comma ('1,3'), or as a range ('1-3').</small></div>
+				    </div>
+				  </div>
+				  <button type="submit" class="btn btn-default">Get selection</button>
+				</form>
+      </div>
+      <div class="col-md-6" id="info">
+      	<ul class="nav nav-tabs" id="dataTabs" role="tablist">
+				  <li role="presentation" class="active"><a href="#summary" aria-controls="summary" role="tab">Summary</a></li>
+				  <li role="presentation"><a href="#json" aria-controls="json" role="tab">Json</a></li>
+				  <li role="presentation"><a  href="#mei" aria-controls="mei" role="tab">Selection MEI</a></li>
+				</ul>
+				<div class="tab-content">
+			    <div role="tabpanel" class="tab-pane active" id="summary">
+			    	
+			    </div>
+			    <div role="tabpanel" class="tab-pane" id="json"></div>
+			    <div role="tabpanel" class="tab-pane" id="mei"></div>
+			  </div>
+      </div>
+    </div>
+    <div class="row">
+    	<div class="col-md-12" id="status"></div>
+    </div>
+  </div>
+
+<script type="text/template" id="info-tpl">
+	<table class="table">
+		<tr>
+			<td>Tot. measures</td><td><%=measures%></td>
+		</tr>
+		<tr>
+			<td>Measure labels</td>
+			<td>
+			<% _.each(measure_labels.slice(0,5), function(ml, i) { %>
+        <%=ml%><br/>
+      <% }); %>
+      <% if (measure_labels.length > 5) {%>
+      	<div id="mmRest" class="collapse">
+      		<% _.each(measure_labels.slice(5), function(ml, i) { %>
+		        <%=ml%><br/>
+		      <% }); %>
+      	</div>
+      	<a data-toggle="collapse" data-target="#mmRest" id="mmMore" href="#">
+      		<small>...show more</small>
+      	</a>
+      <%}%>
+			</td>
+		</tr>
+		<tr>
+			<td>Staves</td>
+			<td>
+				<% _.each(staves, function(s, k) { %>
+	        <%=s.length%> from measure <%=parseInt(k)+1%>
+	        <a data-toggle="collapse" data-target="#st<%=k%>" href="#"><small>Labels</small></a>
+	        <div id="st<%=k%>" class="collapse" style="margin-left: 1em;">
+					<small>
+						<% _.each(s, function(sl, i) { %>
+	  					<%=i+1%>: "<%=sl%>"<br/>
+  					<% }); %>
+					</small>
+				</div>
+	      <% }); %>
+			</td>
+		</tr>
+		<tr>
+			<td>Beats</td>
+			<td>
+				<%
+					var bmm = Object.keys(beats);
+					bmm.sort();
+					_.each(bmm.slice(0,5), function(bm) { %>
+						<%=beats[bm].count%>/<%=beats[bm].unit%> from measure <%=parseInt(bm)+1%>
+						<br/>
+				<% }); %>
+				<% if (bmm.length > 5) {%>
+	      	<div id="beatsRest" class="collapse">
+	      		<% _.each(bmm.slice(5), function(bm) { %>
+			        <%=beats[bm].count%>/<%=beats[bm].unit%> from measure <%=parseInt(bm)+1%>
+			        <br/>
+			      <% }); %>
+	      	</div>
+	      	<a data-toggle="collapse" data-target="#beatsRest" id="beatsMore" href="#">
+	      		<small>...show more</small>
+	      	</a>
+	      <%}%>
+			</td>
+		</tr>
+	</table>
+</script>
+
+<script src="app.js"></script>
+
+</body>
+</html>
