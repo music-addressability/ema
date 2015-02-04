@@ -3,6 +3,8 @@ from flask.ext.restful import abort
 import re
 
 from pymei import XmlExport, MeiElement #for testing
+from pymeiext import getClosestStaffDefs
+
 
 class MeiSlicer(object):
     """A class to slice an MEI document provided a range of 
@@ -17,11 +19,13 @@ class MeiSlicer(object):
 
     @property
     def musicEl(self):
+        """Return the music element"""
         # There is always only one music element in an MEI doc
         return self.meiDoc.getElementsByName("music")[0]
 
     @property
     def measures(self):
+        """Return selected measures"""
         mm = self.musicEl.getDescendantsByName("measure")
         selected = []
         # measure ranges will always return 1 item
@@ -34,10 +38,19 @@ class MeiSlicer(object):
 
     @property
     def staves(self):
+        """Return selected staves"""
         selected = []
         s_nos = self._parseRanges(self.requested_staves)
         
-        for i, m in enumerate(self.measures):
+        # Make sure that required staves are not out of bounds.
+        mm = self.measures
+        sds = [int(sd.getAttribute("n").getValue()) for sd in mm[0].getClosestStaffDefs()]
+
+        for s_no in s_nos:
+            if s_no not in sds:
+                abort(400, error="400", message="Requested staves are not defined")
+
+        for i, m in enumerate(mm):
             data = {
               "on"     : [],
               "around" : []
@@ -51,17 +64,11 @@ class MeiSlicer(object):
                 if staff.hasAttribute("n"):
                     if int(staff.getAttribute("n").getValue()) in s_nos:
                         data["on"].append(staff)
-                    else:
-                    # It is legal in MEI to omit a staff if empty or omitted from score. 
-                        data["on"].append(None)
             if not data["on"]:
                 staves = m.getDescendantsByName("staff")
                 for n in s_nos:
                     if len(staves) >= n:
                         data["on"].append(staves[n])
-            
-            if len(data["on"]) != len(s_nos):
-                abort(400, error="400", message="Could not retrieve requested staves")
 
             ## Getting events AROUND a staff ##
 
@@ -109,6 +116,7 @@ class MeiSlicer(object):
 
     @property
     def beats(self):
+        """Return selected staves including only selected beats"""
         tstamps = self.requested_beats.split("-")
         m_idxs = self._parseRanges(self.requested_measures)
 
@@ -192,7 +200,7 @@ class MeiSlicer(object):
         return self.staves
 
     def getMultiMeasureSpanners(self, end=-1):
-
+        """Return a dictionary of spanning elements landing or starting within selected measures"""
         mm = self.musicEl.getDescendantsByName("measure")
         table = {}
 
@@ -265,7 +273,7 @@ class MeiSlicer(object):
         return table
 
     def select(self):
-        """ This method applies the selection and returns the selected MEI. """
+        """ Return a modified MEI doc containing the selected notation"""
 
         mm = self.measures
 
@@ -314,6 +322,8 @@ class MeiSlicer(object):
 
     #TODO add support for keywords "start" and "end"
     def _parseRanges(self, rang):
+        """Generic method for parsing ranges as specified in the EMA API"""
+
         groups = rang.split(",")
         ranges = []
 
