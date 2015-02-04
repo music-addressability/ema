@@ -18,6 +18,45 @@ class MeiSlicer(object):
         self.completeness = completeness
 
     @property
+    def measureRange(self):
+        """Return list of indexes of requested measure"""
+
+        end = str(self.docInfo["measures"])
+
+        rang = self.requested_measures.replace("start", "1").replace("end", end)
+
+        return self._parseNumericRanges(rang)
+
+    @property
+    def staffRange(self):
+        """Return list of indexes of requested staves"""
+
+        # Locate number of staved defined at beggining of selection
+        m = self.measureRange[0]-1        
+        info = self.docInfo["staves"]
+        closestDef = str(min(info, key=lambda x:abs(int(x)-int(m))))
+        
+        end = str(len(info[closestDef]))
+
+        rang = self.requested_staves.replace("start", "1").replace("end", end)
+
+        return self._parseNumericRanges(rang)
+
+    @property
+    def beatRange(self):
+        """Return two-item list of start and end beat (timestamps)"""
+
+        m = self.measureRange[-1]
+        info = self.docInfo["beats"]
+        closestDef = str(min(info, key=lambda x:abs(int(x)-int(m))))
+
+        end = str(info[closestDef]["count"])
+
+        rang = self.requested_beats.replace("start", "1").replace("end", end)
+
+        return rang.split("-")
+
+    @property
     def musicEl(self):
         """Return the music element"""
         # There is always only one music element in an MEI doc
@@ -29,7 +68,7 @@ class MeiSlicer(object):
         mm = self.musicEl.getDescendantsByName("measure")
         selected = []
         # measure ranges will always return 1 item
-        m_idxs = self._parseRanges(self.requested_measures)
+        m_idxs = self.measureRange
 
         for m_idx in m_idxs:
             selected.append(mm[m_idx-1])
@@ -40,7 +79,7 @@ class MeiSlicer(object):
     def staves(self):
         """Return selected staves"""
         selected = []
-        s_nos = self._parseRanges(self.requested_staves)
+        s_nos = self.staffRange
         
         # Make sure that required staves are not out of bounds.
         mm = self.measures
@@ -87,7 +126,7 @@ class MeiSlicer(object):
 
             ## At the first measure, locate events landing on or including this staff 
             # from out of range measures (eg a long slur)
-            m_idx = self._parseRanges(self.requested_measures)[0] - 1
+            m_idx = self.measureRange[0] - 1
             spanners = {}
             if i == 0 and m_idx > 0:
                 spanners = self.getMultiMeasureSpanners(m_idx)
@@ -117,8 +156,8 @@ class MeiSlicer(object):
     @property
     def beats(self):
         """Return selected staves including only selected beats"""
-        tstamps = self.requested_beats.split("-")
-        m_idxs = self._parseRanges(self.requested_measures)
+        tstamps = self.beatRange
+        m_idxs = self.measureRange
 
         # According to the API, the beat selection must be a range,
         # even when only one beat is selected.
@@ -320,8 +359,7 @@ class MeiSlicer(object):
         return self.meiDoc
 
 
-    #TODO add support for keywords "start" and "end"
-    def _parseRanges(self, rang):
+    def _parseNumericRanges(self, rang):
         """Generic method for parsing ranges as specified in the EMA API"""
 
         groups = rang.split(",")
@@ -336,6 +374,9 @@ class MeiSlicer(object):
             elif length == 2:
                 ranges += range(int(values[0]), int(values[1])+1)
             else:
+                abort(400, error="400", message="Invalid range format")
+
+            if not ranges:
                 abort(400, error="400", message="Invalid range format")
 
         return ranges
