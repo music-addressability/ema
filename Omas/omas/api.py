@@ -17,7 +17,7 @@ class OneOrRangeConverter(BaseConverter):
 
     def __init__(self, url_map):
         super(OneOrRangeConverter, self).__init__(url_map)
-        self.regex = '(?:\d+(-\d+)?)'
+        self.regex = '(?:(\d+|start)(-(\d+|end))?)'
 
     def to_python(self, value):        
         return value
@@ -29,7 +29,7 @@ class OneOrMixedConverter(BaseConverter):
 
     def __init__(self, url_map):
         super(OneOrMixedConverter, self).__init__(url_map)
-        self.regex = '(?:\d+([-,]\d+)*)'
+        self.regex = '(?:(\d+|start)([-,](\d+|end))*)'
 
     def to_python(self, value):        
         return value
