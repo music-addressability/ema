@@ -2,7 +2,7 @@ from meiinfo import MusDocInfo
 from flask.ext.restful import abort
 import re
 
-from pymei import XmlExport, MeiElement #for testing
+from pymei import XmlExport
 from pymeiext import getClosestStaffDefs
 
 
