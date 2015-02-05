@@ -36,6 +36,7 @@ def getStaffDefs(self):
     staffDefs = []
 
     def _look(el, val):
+        """Implements a recursive lookback"""
         sd = el.lookback("staffDef")
         if sd:
             if sd.hasAttribute("n"):
@@ -86,7 +87,7 @@ def getClosestStaffDefs(self):
     allEls = doc.getFlattenedTree()
     preceding = allEls[:self.getPositionInDocument()]
 
-    for el in reversed(preceding): # Boost doens't allow extended slicing
+    for el in reversed(preceding): # Boost doens't allow extended slicing :'(
         if el.getName() == "staffDef":
             if el.hasAttribute("n"):
                 val = el.getAttribute("n").getValue()
