@@ -2,7 +2,7 @@
 
 import re
 import json
-import pymeiext
+from flask.ext.restful import abort
 
 class MusDocInfo(object):
     """An object storing information from an MEI file needed for the EMA API."""
@@ -15,7 +15,8 @@ class MusDocInfo(object):
         musicEl = self.meiDoc.getElementsByName("music")
         # Exception
         if len(musicEl) != 1:
-            sys.exit("MEI document must have one and only one music element.")
+            abort(400, error="400", 
+                  message="MEI document must have one and only one music element.")
         else: return musicEl[0]
 
     @property
@@ -40,7 +41,7 @@ class MusDocInfo(object):
         self.beats = beats
         return staves
 
-    # Property define with alternative method property()
+    # The following property is defined with property()
     # so that it can be set by staves()
     def beats():
         def fget(self):
@@ -102,7 +103,8 @@ class MusDocInfo(object):
             # If at this point a measure hasn't been located, there is
             # something unusual with the data
             if m_pos == None:
-                sys.exit("Could not locate measure after new score definition (scoreDef)")
+                abort(400, error="400", 
+                      message="Could not locate measure after new score definition (scoreDef)")
 
             # Process for beat data if the scoreDef defines meter
             count_att = sd.getAttribute("meter.count")
@@ -157,6 +159,7 @@ class MusDocInfo(object):
         return staves, beats
 
     def get(self):
+        """Return info as Python object"""
         return {"measures" : len(self.measures),
                 "measure_labels" : self.measure_labels,
                 "staves" : self.staves,
@@ -164,16 +167,5 @@ class MusDocInfo(object):
                 "completeness" : ["raw", "signature", "nospace", "cut"]}
 
     def toJsonString(self):
+        """Return info as JSON string"""
         return json.dumps(self.get())
-
-# Keeping this for quick and dirty testing while developing
-# def main():
-#     import os
-#     import sys
-
-#     # info = MusDocInfo(os.path.join("..", "data", "DC0101.mei"))
-#     info = MusDocInfo(os.path.join("/home/rviglian/Dropbox/PhD/Thesis/SUBMITTED/Digital Material/1-modelling/13/", "13_variants.xml"))
-#     print info.toJson()
-
-# if __name__ == "__main__":
-#     main()
