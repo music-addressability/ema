@@ -8,7 +8,8 @@ def getChildrenNodes(self):
     """Return all children nodes, including text nodes"""
     nodes = []
     head = self.getValue()
-    if head: nodes.append(head)
+    if head: 
+        nodes.append(head)
     nodes += self.getChildren()
     nodes.append(self.getTail())
     return nodes
