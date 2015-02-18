@@ -12,6 +12,8 @@ from omas import meislicer
 from omas.exceptions import CannotReadMEIException
 from omas.exceptions import BadApiRequest
 from omas.exceptions import CannotWriteMEIException
+from omas.exceptions import CannotAccessRemoteMEIException
+from omas.exceptions import UnknownMEIReadException
 
 
 # CONVERTERS
@@ -52,10 +54,9 @@ class MEIServiceResource(Resource):
         # Exeunt stage left if something went wrong.
         if r.status_code != requests.codes.ok:
             if r.status_code == 404:
-                message, status = jsonify({"message": "The MEI File could not be found"}), 400
+                raise CannotAccessRemoteMEIException("The MEI File could not be found")
             else:
-                message, status = jsonify({"message": "An unknown error ocurred. Status code: {0}".format(r.status_code)}), 500
-            return make_response(message, status)
+                raise UnknownMEIReadException("An unknown error ocurred. Status code: {0}".format(r.status_code))
 
         return r.content
 
@@ -68,7 +69,14 @@ class Information(MEIServiceResource):
 
         # the requests library shouldn't normally raise an exception, should it? 
         # If it fails it should return a status code....
-        mei_as_text = self.get_external_mei(MEI_id)
+        try:
+            mei_as_text = self.get_external_mei(MEI_id)
+        except CannotAccessRemoteMEIException as ex:
+            message, status = jsonify({"message": ex.message}), 400
+            return make_response(message, status)
+        except UnknownMEIReadException as ex:
+            message, status = jsonify({"message": ex.message}), 500
+            return make_response(message, status)
 
         try:
             parsed_mei = meiinfo.read_MEI(mei_as_text)

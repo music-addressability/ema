@@ -14,3 +14,6 @@ class UnknownMEIReadException(OmasException):
 
 class BadApiRequest(OmasException):
     pass
+
+class CannotAccessRemoteMEIException(OmasException):
+    pass
