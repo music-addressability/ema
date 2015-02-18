@@ -112,14 +112,14 @@ class MusDocInfo(object):
                 count_elm = sd.getDescendantsByName("meterSig")
                 if count_elm:
                     if len(count_elm) > 1:
-                        sys.exit("Mixed meter is not supported, exiting.")
+                        raise api.BadApiRequest("Mixed meter is not supported")
                     count = count_elm[0].getAttribute("count")
                     unit = count_elm[0].getAttribute("unit")
                     if count and unit:
                         beats[str(m_pos)] = {"count" : int(count.getValue())}
                         beats[str(m_pos)]["unit"] = int(unit.getValue())
                     else:
-                        sys.exit("Could not locate meter and compute beats.")
+                        raise api.BadApiRequest("Could not locate meter and compute beats")
 
             # Process for staff data if this scoreDef defines staves
             if len(sd.getChildrenByName("staffGrp")) > 0:
