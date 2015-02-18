@@ -1,31 +1,32 @@
 # coding=UTF-8
-from flask import jsonify, send_from_directory
-from flask.ext.restful import reqparse, abort, Api, Resource
-from omas import omas
-
-from pymei import XmlImport, XmlExport
-from meiinfo import MusDocInfo
-from meislicer import MeiSlicer
-
-from urlparse import urlparse
 from urllib import unquote
+
 import requests
+from werkzeug.routing import BaseConverter
+from flask import jsonify, send_file, make_response
+from flask.ext.restful import Api, Resource
 
-from werkzeug.routing import BaseConverter, ValidationError
+from omas import omas
+from omas import meiinfo
+from omas import meislicer
+from omas.exceptions import CannotReadMEIException
+from omas.exceptions import BadApiRequest
+from omas.exceptions import CannotWriteMEIException
 
-## CONVERTERS
 
+# CONVERTERS
 class OneOrRangeConverter(BaseConverter):
 
     def __init__(self, url_map):
         super(OneOrRangeConverter, self).__init__(url_map)
         self.regex = '(?:(\d+|start)(-(\d+|end))?)'
 
-    def to_python(self, value):        
+    def to_python(self, value):
         return value
 
     def to_url(self, value):
         return value
+
 
 class OneOrMixedConverter(BaseConverter):
 
@@ -33,7 +34,7 @@ class OneOrMixedConverter(BaseConverter):
         super(OneOrMixedConverter, self).__init__(url_map)
         self.regex = '(?:(\d+|start)([-,](\d+|end))*)'
 
-    def to_python(self, value):        
+    def to_python(self, value):
         return value
 
     def to_url(self, value):
@@ -42,51 +43,75 @@ class OneOrMixedConverter(BaseConverter):
 omas.url_map.converters['onex'] = OneOrMixedConverter
 omas.url_map.converters['oner'] = OneOrRangeConverter
 
-## EXCEPTIONS
 
-class BadApiRequest(Exception):
-    def __init__(self, message):
-        abort(400, error="400", message=message)
+class MEIServiceResource(Resource):
+    """ Common methods for MEI Service Requests """
 
-## UTILITIES
+    def get_external_mei(self, meiaddr):
+        r = requests.get(unquote(meiaddr), timeout=15)
+        # Exeunt stage left if something went wrong.
+        if r.status_code != requests.codes.ok:
+            if r.status_code == 404:
+                message, status = jsonify({"message": "The MEI File could not be found"}), 400
+            else:
+                message, status = jsonify({"message": "An unknown error ocurred. Status code: {0}".format(r.status_code)}), 500
+            return make_response(message, status)
 
-def read_MEI(MEI_id):
-    """Get MEI file from its identifier, which can be ark, URN, filename, 
-    or other identifier. Abort if unreachable.
-    """
+        return r.content
 
-    # Parse the id parameter as URL
-    # If it has a URL scheme, try to get the content,
-    # otherwise try to get it as a file.
-    url = urlparse(MEI_id)
-    if url.scheme == "http" or url.scheme == "https":
-        try:
-            mei_as_text = requests.get(unquote(MEI_id), timeout=15).content
-        except Exception, ex:
-            abort(404)
-    else:
-        try:
-            mei_as_text = file(url.path, 'r').read()
-        except Exception, ex:
-            abort(404)      
-    # TODO capture exception here too. Possibly error 400 or better 415 or  and say not MEI file.
-    return XmlImport.documentFromText(mei_as_text)
 
-## RESOURCES
-
-class Information(Resource):
+# RESOURCES
+class Information(MEIServiceResource):
     """Return information about an MEI file. """
-    def get(self, MEI_id):      
-        meiDoc = read_MEI(MEI_id)
-        return jsonify(MusDocInfo(meiDoc).get())
+    def get(self, MEI_id):
+        # if url.scheme == "http" or url.scheme == "https":
 
-class Address(Resource):
+        # the requests library shouldn't normally raise an exception, should it? 
+        # If it fails it should return a status code....
+        mei_as_text = self.get_external_mei(MEI_id)
+
+        try:
+            parsed_mei = meiinfo.read_MEI(mei_as_text)
+        except CannotReadMEIException as ex:
+            # return a 500 server error with the exception message
+            message, status = jsonify({"message": ex.message}), 500
+            return make_response(message, status)
+
+        # it's possible that this will raise some exceptions too, so break it out.
+        try:
+            mus_doc_info = meiinfo.MusDocInfo(parsed_mei).get()
+        except BadApiRequest as ex:
+            message, status = jsonify({"message": ex.message}), 500
+            return make_response(message, status)
+
+        return jsonify(mus_doc_info)
+
+
+class Address(MEIServiceResource):
     """Parse an addressing URL and return portion of MEI"""
     def get(self, MEI_id, measures, staves, beats, completeness=None):
-        meiDoc = read_MEI(MEI_id)
-        XmlExport.meiDocumentToFile(MeiSlicer(meiDoc, measures, staves, beats, completeness).select(), "/tmp/mei.mei")
+        mei_as_text = self.get_external_mei(MEI_id)
 
-        return send_from_directory("/tmp", "mei.mei", as_attachment=True, mimetype="application/xml")
+        try:
+            parsed_mei = meiinfo.read_MEI(mei_as_text)
+        except CannotReadMEIException as ex:
+            message, status = jsonify({"message": ex.message}), 500
+            return make_response(message, status)
+
+        try:
+            mei_slice = meislicer.MeiSlicer(parsed_mei, measures, staves, beats, completeness).select()
+        except BadApiRequest as ex:
+            message, status = jsonify({"message": ex.message}), 400
+            return make_response(message, status)
+
+        # this will write it to a temporary directory automatically
+        try:
+            filename = meiinfo.write_MEI(mei_slice)
+        except CannotWriteMEIException as ex:
+            message, status = jsonify({"message": ex.message}), 500
+            return make_response(message, status)
+
+        return send_file(filename, as_attachment=True, mimetype="application/xml")
 
 
 # Instantiate Api handler and add routes
