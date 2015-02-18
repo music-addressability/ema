@@ -1,5 +1,6 @@
 from meiinfo import MusDocInfo
-from flask.ext.restful import abort
+import api
+
 import re
 
 from pymei import XmlExport
@@ -87,7 +88,7 @@ class MeiSlicer(object):
 
         for s_no in s_nos:
             if s_no not in sds:
-                abort(400, error="400", message="Requested staves are not defined")
+                raise api.BadApiRequest("Requested staves are not defined")
 
         for i, m in enumerate(mm):
             data = {
@@ -162,7 +163,7 @@ class MeiSlicer(object):
         # According to the API, the beat selection must be a range,
         # even when only one beat is selected.
         if len(tstamps) != 2:
-            abort(400, error="400", message="Invalid beat range")
+            raise api.BadApiRequest("Invalid beat range")
 
         tstamp_first = int(tstamps[0])
         tstamp_final = int(tstamps[1])
@@ -183,7 +184,7 @@ class MeiSlicer(object):
 
         # check that the requested beat actually fits in the meter
         if tstamp_first > int(meter_first["count"]) or tstamp_final > int(meter_final["count"]):
-            abort(400, error="400", message="Request beat is out of measure bounds")
+            raise api.BadApiRequest("Request beat is out of measure bounds")
 
         # FIRST MEASURE
         staves = self.staves
@@ -374,9 +375,9 @@ class MeiSlicer(object):
             elif length == 2:
                 ranges += range(int(values[0]), int(values[1])+1)
             else:
-                abort(400, error="400", message="Invalid range format")
+                raise api.BadApiRequest("Invalid range format")
 
             if not ranges:
-                abort(400, error="400", message="Invalid range format")
+                raise api.BadApiRequest("Invalid range format")
 
         return ranges

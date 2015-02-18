@@ -1,8 +1,6 @@
-#!/usr/bin/env python
-
 import re
 import json
-from flask.ext.restful import abort
+import api
 
 class MusDocInfo(object):
     """An object storing information from an MEI file needed for the EMA API."""
@@ -15,8 +13,7 @@ class MusDocInfo(object):
         musicEl = self.meiDoc.getElementsByName("music")
         # Exception
         if len(musicEl) != 1:
-            abort(400, error="400", 
-                  message="MEI document must have one and only one music element.")
+            raise api.BadApiRequest("MEI document must have one and only one music element")
         else: return musicEl[0]
 
     @property
@@ -103,8 +100,7 @@ class MusDocInfo(object):
             # If at this point a measure hasn't been located, there is
             # something unusual with the data
             if m_pos == None:
-                abort(400, error="400", 
-                      message="Could not locate measure after new score definition (scoreDef)")
+                raise api.BadApiRequest("Could not locate measure after new score definition (scoreDef)")
 
             # Process for beat data if the scoreDef defines meter
             count_att = sd.getAttribute("meter.count")

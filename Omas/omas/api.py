@@ -13,6 +13,8 @@ import requests
 
 from werkzeug.routing import BaseConverter, ValidationError
 
+## CONVERTERS
+
 class OneOrRangeConverter(BaseConverter):
 
     def __init__(self, url_map):
@@ -40,6 +42,14 @@ class OneOrMixedConverter(BaseConverter):
 omas.url_map.converters['onex'] = OneOrMixedConverter
 omas.url_map.converters['oner'] = OneOrRangeConverter
 
+## EXCEPTIONS
+
+class BadApiRequest(Exception):
+    def __init__(self, message):
+        abort(400, error="400", message=message)
+
+## UTILITIES
+
 def read_MEI(MEI_id):
     """Get MEI file from its identifier, which can be ark, URN, filename, 
     or other identifier. Abort if unreachable.
@@ -61,6 +71,8 @@ def read_MEI(MEI_id):
             abort(404)      
     # TODO capture exception here too. Possibly error 400 or better 415 or  and say not MEI file.
     return XmlImport.documentFromText(mei_as_text)
+
+## RESOURCES
 
 class Information(Resource):
     """Return information about an MEI file. """
