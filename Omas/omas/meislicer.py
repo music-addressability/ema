@@ -351,9 +351,19 @@ class MeiSlicer(object):
                 return _removeAfter(parent)
             return curEl
 
+        def _findLowestCommonAncestor(el1, el2):
+            while not el1 == el2:
+                el1 = el1.getParent()
+                el2 = el2.getParent()
+            return el1
+
         # Apply
         _removeBefore(mm[0])
         _removeAfter(mm[-1])
+
+        if self.completeness == "raw":
+            lca = _findLowestCommonAncestor(mm[0], mm[-1])
+            self.meiDoc.setRootElement(lca)
 
         return self.meiDoc
 
