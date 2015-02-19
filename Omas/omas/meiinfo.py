@@ -8,6 +8,7 @@ from pymei import XmlExport
 from pymei.exceptions import ElementNotRegisteredException
 from pymei.exceptions import MalformedFileException
 from pymei.exceptions import FileWriteFailureException
+from pymei.exceptions import NoVersionFoundException
 
 from omas.exceptions import CannotReadMEIException, CannotWriteMEIException
 from omas.exceptions import BadApiRequest
@@ -23,6 +24,8 @@ def read_MEI(meitext):
         raise CannotReadMEIException("The MEI File could not be read with this version of libmei. {0}".format(ex.message))
     except MalformedFileException as ex:
         raise CannotReadMEIException("The MEI File was malformed and could not be read. {0}".format(ex.message))
+    except NoVersionFoundException as ex:
+        raise CannotReadMEIException("The MEI File could not be read beacause it did not specify its version.")
     except:
         raise CannotReadMEIException("The MEI File could not be read for unknown reasons.")
 
