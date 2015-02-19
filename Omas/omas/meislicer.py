@@ -2,6 +2,7 @@ from meiinfo import MusDocInfo
 from omas.exceptions import BadApiRequest
 
 import re
+from pymei import MeiElement, MeiAttribute
 from pymeiext import getClosestStaffDefs
 
 
@@ -54,6 +55,17 @@ class MeiSlicer(object):
         rang = self.requested_beats.replace("start", "1").replace("end", end)
 
         return rang.split("-")
+
+    @property
+    def completenessOptions(self):
+        """Return list of completeness options"""
+
+        opts = []
+        
+        if self.completeness:
+            opts = self.completeness.split(",")
+
+        return opts
 
     @property
     def musicEl(self):
@@ -175,19 +187,19 @@ class MeiSlicer(object):
         timeChanges = beatsInfo.keys()
         timeChanges.sort(key=int)
         for change in timeChanges:
-            if int(change) <= m_idxs[0]:
+            if int(change)+1 <= m_idxs[0]:
                 meter_first = beatsInfo[change]
-            if int(change) <= m_idxs[-1]:
+            if int(change)+1 <= m_idxs[-1]:
                 meter_final = beatsInfo[change]
 
         # check that the requested beat actually fits in the meter
         if tstamp_first > int(meter_first["count"]) or tstamp_final > int(meter_final["count"]):
             raise BadApiRequest("Request beat is out of measure bounds")
 
-        def _calculateDur(element):
+        def _calculateDur(element, meter):
         # TODO: beware of @duration.default - though not very common
             duration = int(element.getAttribute("dur").getValue())
-            relative_dur = float(int(meter_first["unit"]) / float(duration))
+            relative_dur = float(int(meter["unit"]) / float(duration))
 
             dots = 0
             if element.getAttribute("dots"):
@@ -198,51 +210,65 @@ class MeiSlicer(object):
             dot_dur = duration
             for d in range(1, int(dots)+1):
                 dot_dur = dot_dur * 2
-                relative_dur += float(int(meter_first["unit"]) / float(dot_dur))
+                relative_dur += float(int(meter["unit"]) / float(dot_dur))
 
             return relative_dur
 
-        # Set a list for elements marked for removal
+        # Set a dictionary of elements marked for removal, organized by measure
         # Elements are not removed immediately to make sure that beat
         # calcualtions are accurate.
-        marked_for_removal = []
+        marked_for_removal = {"first" : [], "last" : []}
+
+        staves = self.staves
 
         # FIRST MEASURE
-        staves = self.staves
-        data_first = staves[0]        
 
         # Start by counting durations of on-staff elements
-        for staff in data_first["on"]:
+        for staff in staves[0]["on"]:
             # Find all descendants with att.duration.musical (@dur)
             cur_beat = 0.0
             if staff: #staves can also be "silent"
                 for el in staff.getDescendants():
                     if el.hasAttribute("dur"):
-                        cur_beat += _calculateDur(el)
+                        cur_beat += _calculateDur(el, meter_first)
                         # exclude descendants before tstamp, 
                         # unless they end after or on tstamp
                         if cur_beat < tstamp_first: 
-                            marked_for_removal.append(el)
-
+                            marked_for_removal["first"].append(el)
 
         # LAST MEASURE
-        data_first = staves[-1]
 
         # Start by counting durations of on-staff elements
-        for staff in data_first["on"]:
+        for staff in staves[-1]["on"]:
             # Find all descendants with att.duration.musical (@dur)
             cur_beat = 0.0
             if staff: #staves can also be "silent"
                 for el in staff.getDescendants():
                     if el.hasAttribute("dur"):
-                        cur_beat += _calculateDur(el)
+                        cur_beat += _calculateDur(el, meter_final)
                         # exclude decendants after tstamp
-                        print "a", cur_beat, tstamp_final
                         if cur_beat > tstamp_final: 
-                            marked_for_removal.append(el)
+                            marked_for_removal["last"].append(el)
+
+        print marked_for_removal
 
         # Remove elements marked for deletion
-        for el in marked_for_removal:
+        for el in marked_for_removal["first"]:
+            parent = el.getParent()
+            # Add space element to replace the one marked for deletion
+            # unless completeness is set to nospace
+            if "nospace" not in self.completenessOptions:
+                space = MeiElement("space")
+                space.addAttribute(el.getAttribute("dur"))
+                if el.getAttribute("dots"):
+                    space.addAttribute(el.getAttribute("dots"))
+                elif el.getChildrenByName("dot"):
+                    dots = str(len(el.getChildrenByName("dot")))
+                    space.addAttribute( MeiAttribute("dots", dots) )
+                parent.addChildBefore(el, space)
+            el.getParent().removeChild(el)
+
+        for el in marked_for_removal["last"]:
             el.getParent().removeChild(el)
 
         return self.staves
@@ -335,8 +361,10 @@ class MeiSlicer(object):
                 if el not in selected[i]["on"] and el not in selected[i]["around"]:
                     m.removeChild(el)
 
-        # Then recursively remove all unwanted siblings of selected measures.
-        # TODO: Take completeness parameter into account.
+        # Then recursively remove all unwanted siblings of selected measures.        
+
+        # List of elements to keep, to be adjusted according to parameters
+        keep = ["meiHead"]
 
         def _removeBefore(curEl):
             parent = curEl.getParent()
@@ -345,7 +373,8 @@ class MeiSlicer(object):
                     if el == curEl:
                         break
                     else:
-                        parent.removeChild(el)
+                        if not el.getName() in keep:
+                            parent.removeChild(el)
                 return _removeBefore(parent)
             return curEl
 
@@ -355,7 +384,8 @@ class MeiSlicer(object):
                 removing = False
                 for el in curEl.getPeers():
                     if removing:
-                        parent.removeChild(el)
+                        if not el.getName() in keep:
+                            parent.removeChild(el)
                     elif el == curEl: 
                         removing = True
                 return _removeAfter(parent)
@@ -371,7 +401,7 @@ class MeiSlicer(object):
         _removeBefore(mm[0])
         _removeAfter(mm[-1])
 
-        if self.completeness == "raw":
+        if "raw" in self.completenessOptions:
             lca = _findLowestCommonAncestor(mm[0], mm[-1])
             self.meiDoc.setRootElement(lca)
 
