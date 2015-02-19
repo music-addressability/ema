@@ -184,26 +184,32 @@ class MeiSlicer(object):
         if tstamp_first > int(meter_first["count"]) or tstamp_final > int(meter_final["count"]):
             raise BadApiRequest("Request beat is out of measure bounds")
 
-        # FIRST MEASURE
-        staves = self.staves
-        data_first = staves[0]
-
-        # TODO: beware of @duration.default - though not very common
-
         def _calculateDur(element):
-            duration = element.getAttribute("dur").getValue()
+        # TODO: beware of @duration.default - though not very common
+            duration = int(element.getAttribute("dur").getValue())
+            relative_dur = float(int(meter_first["unit"]) / float(duration))
+
             dots = 0
             if element.getAttribute("dots"):
                 dots = int(element.getAttribute("dots").getValue())
             elif element.getChildrenByName("dot"):
                 dots = len(element.getChildrenByName("dot"))
 
-            dotsvalue = duration
+            dot_dur = duration
             for d in range(1, int(dots)+1):
-                dotsvalue = dotsvalue * 2
-                duration += dotsvalue
+                dot_dur = dot_dur * 2
+                relative_dur += float(int(meter_first["unit"]) / float(dot_dur))
 
-            return duration
+            return relative_dur
+
+        # Set a list for elements marked for removal
+        # Elements are not removed immediately to make sure that beat
+        # calcualtions are accurate.
+        marked_for_removal = []
+
+        # FIRST MEASURE
+        staves = self.staves
+        data_first = staves[0]        
 
         # Start by counting durations of on-staff elements
         for staff in data_first["on"]:
@@ -211,12 +217,12 @@ class MeiSlicer(object):
             cur_beat = 0.0
             if staff: #staves can also be "silent"
                 for el in staff.getDescendants():
-                    if el.hasAttribute("dur"):                    
-                        dur = _calculateDur(el)
-                        cur_beat += float(int(meter_first["unit"]) / float(dur))
-                        # exclude descendants before tstamp
-                        if cur_beat <= tstamp_first: 
-                            el.getParent().removeChild(el)
+                    if el.hasAttribute("dur"):
+                        cur_beat += _calculateDur(el)
+                        # exclude descendants before tstamp, 
+                        # unless they end after or on tstamp
+                        if cur_beat < tstamp_first: 
+                            marked_for_removal.append(el)
 
 
         # LAST MEASURE
@@ -229,11 +235,15 @@ class MeiSlicer(object):
             if staff: #staves can also be "silent"
                 for el in staff.getDescendants():
                     if el.hasAttribute("dur"):
-                        dur = _calculateDur(el)
-                        cur_beat += float(int(meter_final["unit"]) / float(dur))
+                        cur_beat += _calculateDur(el)
                         # exclude decendants after tstamp
+                        print "a", cur_beat, tstamp_final
                         if cur_beat > tstamp_final: 
-                            el.getParent().removeChild(el)
+                            marked_for_removal.append(el)
+
+        # Remove elements marked for deletion
+        for el in marked_for_removal:
+            el.getParent().removeChild(el)
 
         return self.staves
 
