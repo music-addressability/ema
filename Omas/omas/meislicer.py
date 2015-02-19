@@ -250,8 +250,6 @@ class MeiSlicer(object):
                         if cur_beat > tstamp_final: 
                             marked_for_removal["last"].append(el)
 
-        print marked_for_removal
-
         # Remove elements marked for deletion
         for el in marked_for_removal["first"]:
             parent = el.getParent()
@@ -350,6 +348,8 @@ class MeiSlicer(object):
         """ Return a modified MEI doc containing the selected notation"""
 
         mm = self.measures
+        m_first = mm[0]
+        m_final = mm[-1]
 
         # Go through the children of selected measures. 
         # Keep those matching elements in m["on"] and m["around"].
@@ -397,13 +397,46 @@ class MeiSlicer(object):
                 el2 = el2.getParent()
             return el1
 
-        # Apply
-        _removeBefore(mm[0])
-        _removeAfter(mm[-1])
+        # Compute closest score definition to start measure        
+        allEls = self.meiDoc.getFlattenedTree()
+        preceding = allEls[:m_first.getPositionInDocument()]
+
+        scoreDef = None
+
+        for el in reversed(preceding):
+            if el.getName() == "scoreDef":
+                scoreDef = el
+
+        # Remove definitions of unselected staves
+        s_nos = self.staffRange
+
+        for sd in scoreDef.getDescendantsByName("staffDef"):            
+            if sd.hasAttribute("n"):
+                if not int(sd.getAttribute("n").getValue()) in s_nos:
+                    # Remove parent staffGrp if this is the last staffDef
+                    sg = sd.getAncestor("staffGrp")
+                    if len(sg.getDescendantsByName("staffDef")) == 1:
+                        sg.getParent().removeChild(sg)
+                    else:
+                        sd.getParent().removeChild(sd)
+        
+        # Recursively remove elements before and after selected measures
+        _removeBefore(m_first)
+        _removeAfter(m_final)
+
+        # Then re-attach computed score definition
+        sec_first = m_first.getAncestor("section")
+        sec_first.getParent().addChildBefore(sec_first, scoreDef)
+
 
         if "raw" in self.completenessOptions:
             lca = _findLowestCommonAncestor(mm[0], mm[-1])
             self.meiDoc.setRootElement(lca)
+
+            # re-attach computed score definition if required by
+            # completeness = signature
+            if "signature" in self.completenessOptions:
+                m_first.getParent().addChildBefore(m_first, scoreDef)
 
         return self.meiDoc
 
