@@ -1,6 +1,48 @@
+import os
 import re
 import json
-import api
+import tempfile
+
+from pymei import XmlImport
+from pymei import XmlExport
+from pymei.exceptions import ElementNotRegisteredException
+from pymei.exceptions import MalformedFileException
+from pymei.exceptions import FileWriteFailureException
+
+from omas.exceptions import CannotReadMEIException, CannotWriteMEIException
+from omas.exceptions import BadApiRequest
+
+
+def read_MEI(meitext):
+    """Get MEI file from its identifier, which can be ark, URN, filename, 
+    or other identifier. Abort if unreachable.
+    """
+    try:
+        parsed_mei = XmlImport.documentFromText(meitext)
+    except ElementNotRegisteredException as ex:
+        raise CannotReadMEIException("The MEI File could not be read with this version of libmei. {0}".format(ex.message))
+    except MalformedFileException as ex:
+        raise CannotReadMEIException("The MEI File was malformed and could not be read. {0}".format(ex.message))
+    except:
+        raise CannotReadMEIException("The MEI File could not be read for unknown reasons.")
+
+    return parsed_mei
+
+
+def write_MEI(mei_to_write):
+    tdir = tempfile.mkdtemp()
+    fname = "slice.mei"
+    filename = os.path.join(tdir, fname)
+    # you can do the same thing here and catch write exceptions, etc.
+    # See: https://github.com/DDMAL/libmei/blob/master/python/src/_libmei_exceptions.cpp#L132
+    # for all the different types of exceptions libmei can raise.
+    try:
+        XmlExport.meiDocumentToFile(mei_to_write, filename)
+    except FileWriteFailureException as ex:
+        raise CannotWriteMEIException("The MEI Slice could not be written. {0}".format(ex.message))
+
+    return filename
+
 
 class MusDocInfo(object):
     """An object storing information from an MEI file needed for the EMA API."""
@@ -13,8 +55,9 @@ class MusDocInfo(object):
         musicEl = self.meiDoc.getElementsByName("music")
         # Exception
         if len(musicEl) != 1:
-            raise api.BadApiRequest("MEI document must have one and only one music element")
-        else: return musicEl[0]
+            raise BadApiRequest("MEI document must have one and only one music element")
+        else:
+            return musicEl[0]
 
     @property
     def measures(self):
@@ -100,26 +143,26 @@ class MusDocInfo(object):
             # If at this point a measure hasn't been located, there is
             # something unusual with the data
             if m_pos == None:
-                raise api.BadApiRequest("Could not locate measure after new score definition (scoreDef)")
+                raise BadApiRequest("Could not locate measure after new score definition (scoreDef)")
 
             # Process for beat data if the scoreDef defines meter
             count_att = sd.getAttribute("meter.count")
             unit_att = sd.getAttribute("meter.unit")
             if count_att and unit_att:
-                beats[str(m_pos)] = {"count" : int(count_att.getValue())}
+                beats[str(m_pos)] = {"count": int(count_att.getValue())}
                 beats[str(m_pos)]["unit"] = int(unit_att.getValue())
             else:
                 count_elm = sd.getDescendantsByName("meterSig")
                 if count_elm:
                     if len(count_elm) > 1:
-                        raise api.BadApiRequest("Mixed meter is not supported")
+                        raise BadApiRequest("Mixed meter is not supported")
                     count = count_elm[0].getAttribute("count")
                     unit = count_elm[0].getAttribute("unit")
                     if count and unit:
                         beats[str(m_pos)] = {"count" : int(count.getValue())}
                         beats[str(m_pos)]["unit"] = int(unit.getValue())
                     else:
-                        raise api.BadApiRequest("Could not locate meter and compute beats")
+                        raise BadApiRequest("Could not locate meter and compute beats")
 
             # Process for staff data if this scoreDef defines staves
             if len(sd.getChildrenByName("staffGrp")) > 0:
@@ -156,11 +199,11 @@ class MusDocInfo(object):
 
     def get(self):
         """Return info as Python object"""
-        return {"measures" : len(self.measures),
-                "measure_labels" : self.measure_labels,
-                "staves" : self.staves,
-                "beats" : self.beats,
-                "completeness" : ["raw", "signature", "nospace", "cut"]}
+        return {"measures": len(self.measures),
+                "measure_labels": self.measure_labels,
+                "staves": self.staves,
+                "beats": self.beats,
+                "completeness": ["raw", "signature", "nospace", "cut"]}
 
     def toJsonString(self):
         """Return info as JSON string"""

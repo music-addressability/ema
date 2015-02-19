@@ -1,9 +1,7 @@
 from meiinfo import MusDocInfo
-import api
+from omas.exceptions import BadApiRequest
 
 import re
-
-from pymei import XmlExport
 from pymeiext import getClosestStaffDefs
 
 
@@ -88,7 +86,7 @@ class MeiSlicer(object):
 
         for s_no in s_nos:
             if s_no not in sds:
-                raise api.BadApiRequest("Requested staves are not defined")
+                raise BadApiRequest("Requested staves are not defined")
 
         for i, m in enumerate(mm):
             data = {
@@ -163,7 +161,7 @@ class MeiSlicer(object):
         # According to the API, the beat selection must be a range,
         # even when only one beat is selected.
         if len(tstamps) != 2:
-            raise api.BadApiRequest("Invalid beat range")
+            raise BadApiRequest("Invalid beat range")
 
         tstamp_first = int(tstamps[0])
         tstamp_final = int(tstamps[1])
@@ -184,7 +182,7 @@ class MeiSlicer(object):
 
         # check that the requested beat actually fits in the meter
         if tstamp_first > int(meter_first["count"]) or tstamp_final > int(meter_final["count"]):
-            raise api.BadApiRequest("Request beat is out of measure bounds")
+            raise BadApiRequest("Request beat is out of measure bounds")
 
         # FIRST MEASURE
         staves = self.staves
@@ -375,9 +373,9 @@ class MeiSlicer(object):
             elif length == 2:
                 ranges += range(int(values[0]), int(values[1])+1)
             else:
-                raise api.BadApiRequest("Invalid range format")
+                raise BadApiRequest("Invalid range format")
 
             if not ranges:
-                raise api.BadApiRequest("Invalid range format")
+                raise BadApiRequest("Invalid range format")
 
         return ranges
