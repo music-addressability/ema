@@ -29,6 +29,13 @@ def getDecendantsTextNodes(self):
     _extractTextNode(self)
     return text_nodes
 
+def moveTo(self, parent):
+    """Move this element to new parent, as last child"""
+    self.getParent().removeChild(self)
+    parent.addChild(self)
+
+    return self
+
 def getStaffDefs(self):
     """Return list of current staff definitions for the element's staff"""
 
@@ -100,5 +107,6 @@ def getClosestStaffDefs(self):
 
 MeiElement.getChildrenNodes = getChildrenNodes
 MeiElement.getDecendantsTextNodes = getDecendantsTextNodes
+MeiElement.moveTo = moveTo
 MeiElement.getStaffDefs = getStaffDefs
 MeiElement.getClosestStaffDefs = getClosestStaffDefs
