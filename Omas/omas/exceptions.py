@@ -17,3 +17,6 @@ class BadApiRequest(OmasException):
 
 class CannotAccessRemoteMEIException(OmasException):
     pass
+
+class UnsupportedEncoding(OmasException):
+    pass

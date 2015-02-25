@@ -14,6 +14,7 @@ from omas.exceptions import BadApiRequest
 from omas.exceptions import CannotWriteMEIException
 from omas.exceptions import CannotAccessRemoteMEIException
 from omas.exceptions import UnknownMEIReadException
+from omas.exceptions import UnsupportedEncoding
 
 
 # CONVERTERS
@@ -110,6 +111,9 @@ class Address(MEIServiceResource):
             mei_slice = meislicer.MeiSlicer(parsed_mei, measures, staves, beats, completeness).select()
         except BadApiRequest as ex:
             message, status = jsonify({"message": ex.message}), 400
+            return make_response(message, status)
+        except UnsupportedEncoding as ex:
+            message, status = jsonify({"message": ex.message}), 500
             return make_response(message, status)
 
         # this will write it to a temporary directory automatically
