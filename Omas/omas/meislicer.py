@@ -1,9 +1,10 @@
 from meiinfo import MusDocInfo
 from omas.exceptions import BadApiRequest
+from omas.exceptions import UnsupportedEncoding
 
 import re
 from pymei import MeiElement, MeiAttribute
-from pymeiext import getClosestStaffDefs
+from pymeiext import getClosestStaffDefs, moveTo
 
 
 class MeiSlicer(object):
@@ -102,8 +103,8 @@ class MeiSlicer(object):
 
         for i, m in enumerate(mm):
             data = {
-              "on"     : [],
-              "around" : []
+              "on"     : [], # list of selected staves
+              "around" : []  # list of elements affecting *all* selected staves
             }
 
             ## Getting events ON staff ##
@@ -122,8 +123,10 @@ class MeiSlicer(object):
 
             ## Getting events AROUND a staff ##
 
-            for el in m.getChildren():
+            def _getSelectedStaffNosFor(el):
+                """ Get staff numbers of element if the staves are selected"""
                 #TODO: CAREFUL - EDITORIAL MARKUP MAY OBFUSCATE THIS
+                values = []
                 if el.hasAttribute("staff"):
                     # Split value of @staff, as it may contain multiple values.
                     values = el.getAttribute("staff").getValue().split()
@@ -131,36 +134,98 @@ class MeiSlicer(object):
 
                     # Then check that any of the values are in s_nos.
                     if len(set(values).intersection(s_nos)) > 0:
-                        data["around"].append(el)
+                        return values
+                    else:
+                        values = []
+                return values
+
+            for el in m.getChildren():
+                if _getSelectedStaffNosFor(el):
+                    data["around"].append(el)
 
             selected.append(data)
 
-            ## At the first measure, locate events landing on or including this staff 
-            # from out of range measures (eg a long slur)
-            m_idx = self.measureRange[0] - 1
-            spanners = {}
-            if i == 0 and m_idx > 0:
-                spanners = self.getMultiMeasureSpanners(m_idx)
-            
-            # Use table to determine elements to include in each affected measure
-            m_id = m.getId()
-            if m_id in spanners:
-                for event_id in spanners[m_id]:
-                    event = self.meiDoc.getElementById(event_id)
+        ## INCLUDE SPANNERS
 
-                    # Truncate event to start at the beginning of the range
-                    if event.hasAttribute("startid"):
-                        # Set startid to the first event on staff
-                        first_id = selected[0]["on"][0].getId()
+        # Locate events landing on or including this staff 
+        # from out of range measures (eg a long slur),
+        # and append to first measure in selection
+        m_idx = self.measureRange[0] - 1            
+        spanners = self.getMultiMeasureSpanners(m_idx)
+
+        # Include spanners from table 
+        for events in spanners.values():
+            for event_id in events:
+                event = self.meiDoc.getElementById(event_id)
+
+                # Determine staff of event for id changes
+                staff = 0
+                staff_nos = _getSelectedStaffNosFor(event)
+                if staff_nos:
+                    staff = s_nos.index(staff_nos[0])
+
+                # Truncate event to start at the beginning of the range
+                if event.hasAttribute("startid"):
+                    # Set startid to the first event on staff (first available layer)                            
+                    try:
+                        layer = selected[0]["on"][staff].getChildrenByName("layer")
+                        first_id = layer[0].getChildren()[0].getId()
                         event.getAttribute("startid").setValue("#"+first_id)
-                    if event.hasAttribute("tstamp"):
-                        # Set tstamp to 0
-                        event.getAttribute("tstamp").setValue("0")                    
+                    except IndexError:
+                        msg = """
+                            Unsupported encoding. Omas attempted to adjust the starting 
+                            point of a selected multi-measure element that starts before 
+                            the selection, but the staff or layer could not be located.
+                            """
+                        raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
 
-                    # and attach to "around" data of first measure
-                    selected[0]["around"].append(event)
+                if event.hasAttribute("tstamp"):
+                    # Set tstamp to 1 (equivalent to startid pointing at first event)
+                    event.getAttribute("tstamp").setValue("1")
 
-                    # TODO truncate to end at end of range (depending on completeness reqs)
+                # Truncate to end of range if completeness = cut
+                if "cut" in self.completenessOptions:
+                    if event.hasAttribute("tstamp2"):
+                        att = event.getAttribute("tstamp2")
+                        t2 = att.getValue()
+                        p = re.compile(r"([1-9]+)(?=m\+)")
+                        multimeasure = p.match(t2)
+                        if multimeasure:
+                            new_val = len(mm) - 1
+                            att.setValue(p.sub(str(new_val), t2))
+                    if event.hasAttribute("endid"):                                                
+                        if events[event_id]["distance"] > 0:
+                            # Set end to the last event on staff
+                            try:
+                                layer = selected[-1]["on"][staff].getChildrenByName("layer")
+                                last_id = layer[0].getChildren()[-1].getId()
+                                event.getAttribute("endid").setValue("#"+last_id)
+                            except IndexError:
+                                msg = """
+                                    Unsupported encoding. Omas attempted to adjust the ending 
+                                    point of a selected multi-measure element that ends after 
+                                    the selection, but the staff or layer could not be located.
+                                    """
+                                raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
+
+                # Otherwise adjust tspan2 value to correct distance. 
+                # E.g. given 4 measures with a spanner originating in 1 and ending in 4
+                # and a selection of measures 2 and 3,
+                # change @tspan2 from 3m+X to 2m+X
+                else:                            
+                    if event.hasAttribute("tstamp2"): 
+                        att = event.getAttribute("tstamp2")
+                        t2 = att.getValue()
+                        p = re.compile(r"([1-9]+)(?=m\+)")
+                        multimeasure = p.match(t2)
+                        if multimeasure:
+                            new_val = int(multimeasure.group(1)) - events[event_id]["distance"]
+                            att.setValue(p.sub(str(new_val), t2))
+
+                # move element to first measure and add it to selected 
+                # events "around" the staff.
+                event.moveTo(mm[0])
+                selected[0]["around"].append(event)
 
         return selected
 
@@ -272,7 +337,8 @@ class MeiSlicer(object):
         return self.staves
 
     def getMultiMeasureSpanners(self, end=-1):
-        """Return a dictionary of spanning elements landing or starting within selected measures"""
+        """Return a dictionary of spanning elements ecompassing, 
+           or landing or starting within selected measures"""
         mm = self.musicEl.getDescendantsByName("measure")
         table = {}
 
@@ -280,7 +346,8 @@ class MeiSlicer(object):
         # {
         #     "_targetMeasureID_" : {
         #         "_eventID_" : {
-        #             "origin" : "_originMeasureID_", 
+        #             "origin" : "_originMeasureID_",
+        #             "distance" : 0,
         #             "startid" : "_startID_",
         #             "endid" : "_endID_",
         #             "tstamp" : "_beat_",
@@ -288,6 +355,13 @@ class MeiSlicer(object):
         #         }
         #     }
         # }
+
+        def _calculateDistance(origin):
+            """ Calcualte distance of origin measure from 
+                first measure in selection """
+            # Cast MeiElementList to python list
+            list_mm = list(mm)
+            return list_mm.index(self.measures[0]) - list_mm.index(origin)
 
         # Exclude end measure index from request, 
         # unless last measure is requested (creates table for whole file).
@@ -315,11 +389,13 @@ class MeiSlicer(object):
                         if destination.getId() != prev_m.getId():
                             # Create table entry
                             dest_id = destination.getId()
+                            distance = _calculateDistance(prev_m)
                             el_id = el.getId()
                             
                             if dest_id not in table: table[dest_id] = {}
                             table[dest_id][el_id] = {
                                 "origin" : m_id,
+                                "distance" : distance,
                                 "endid": endid
                             }
                             if el.hasAttribute("startid"):
@@ -327,16 +403,18 @@ class MeiSlicer(object):
                                 table[dest_id][el_id]["startid"] = startid
                 elif el.hasAttribute("tstamp2"):
                     t2 = el.getAttribute("tstamp2").getValue() 
-                    multiMesSpan = re.match(r"([1-9])+m\+", t2)
-                    if multiMesSpan:
+                    multiMesSpan = re.match(r"([1-9]+)m\+", t2)
+                    if multiMesSpan:                        
                         destination = mm[ i + int(multiMesSpan.group(1)) ]
                         # Create table entry
                         dest_id = destination.getId()
+                        distance = _calculateDistance(prev_m)
                         el_id = el.getId()
                         
                         if dest_id not in table: table[dest_id] = {}
                         table[dest_id][el_id] = {
                             "origin" : m_id,
+                            "distance" : distance,
                             "tstamp2": t2
                         }
                         if el.hasAttribute("tstamp"):
