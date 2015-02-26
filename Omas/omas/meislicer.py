@@ -262,6 +262,7 @@ class MeiSlicer(object):
             raise BadApiRequest("Request beat is out of measure bounds")
 
         def _calculateDur(element, meter):
+            """ Determine the duration of an element given a meter """
         # TODO: beware of @duration.default - though not very common
             duration = int(element.getAttribute("dur").getValue())
             relative_dur = float(int(meter["unit"]) / float(duration))
@@ -278,6 +279,15 @@ class MeiSlicer(object):
                 relative_dur += float(int(meter["unit"]) / float(dot_dur))
 
             return relative_dur
+
+        def _cutDuration(element, meter):
+            """ Cut the duration of given element to the final beat """
+            element.getAttribute("dur").setValue(str(meter["unit"]))
+            # Remove dots if any
+            element.removeAttribute("dots")
+            element.removeChildrenByName("dot")
+
+            return element
 
         # Set a dictionary of elements marked for removal, organized by measure
         # Elements are not removed immediately to make sure that beat
@@ -310,10 +320,17 @@ class MeiSlicer(object):
             if staff: #staves can also be "silent"
                 for el in staff.getDescendants():
                     if el.hasAttribute("dur"):
+                        dur = _calculateDur(el, meter_final)
                         # exclude decendants after tstamp
                         if cur_beat > tstamp_final: 
                             marked_for_removal["last"].append(el)
-                        cur_beat += _calculateDur(el, meter_final)
+                        else:
+                            # Cut the duration of the last element if completeness = cut
+                            if cur_beat + dur > tstamp_final and "cut" in self.completenessOptions:
+                                _cutDuration(el, meter_final)
+                        # continue
+                        cur_beat += dur
+
 
         # Remove elements marked for deletion
         for el in marked_for_removal["first"]:
