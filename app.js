@@ -58,20 +58,36 @@ OmasClient.App = Backbone.View.extend({
       $("#dataTabs a:last").tab("show");
       OmasClient.Utils.showLoader("#mei");
 
-      var startM = $(e.target).find("#startM").val();
-      var endM = $(e.target).find("#endM").val();
-      var staves = $(e.target).find("#staves").val();
-      var startBeat = $(e.target).find("#startB").val();
-      var endBeat = $(e.target).find("#endB").val();
+      var startM = $(e.target).find("#startM").val(),
+          endM = $(e.target).find("#endM").val(),
+          staves = $(e.target).find("#staves").val(),
+          startBeat = $(e.target).find("#startB").val(),
+          endBeat = $(e.target).find("#endB").val(),
+          opt_raw = $(e.target).find("#opt_raw").is(":checked"),
+          opt_signature = $(e.target).find("#opt_signature").is(":checked"),
+          opt_nospace = $(e.target).find("#opt_nospace").is(":checked"),
+          opt_cut = $(e.target).find("#opt_cut").is(":checked");
+
+      var options = []
+      if (opt_raw) {options.push("raw")}
+      if (opt_signature) {options.push("signature")}
+      if (opt_nospace) {options.push("nospace")}
+      if (opt_cut) {options.push("cut")}
+      var options_str = options.join();
 
       encodedUrl = encodeURIComponent(url);
-      reqUrl = "http://54.152.53.212/"
+      reqUrl = "http://ema.mith.org/"
              + encodedUrl + "/"
              + startM + "-"
              + endM + "/"
              + staves + "/"
              + startBeat + "-"
              + endBeat;
+
+      if (options_str) {
+        reqUrl += "/" + options_str;
+      }
+      console.log(reqUrl);
 
       $.get(reqUrl, function (data) {
         var p = $("<pre class='pre-scrollable'/>");
