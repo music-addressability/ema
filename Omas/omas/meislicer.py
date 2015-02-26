@@ -123,114 +123,11 @@ class MeiSlicer(object):
 
             ## Getting events AROUND a staff ##
 
-            def _getSelectedStaffNosFor(el):
-                """ Get staff numbers of element if the staves are selected"""
-                #TODO: CAREFUL - EDITORIAL MARKUP MAY OBFUSCATE THIS
-                values = []
-                if el.hasAttribute("staff"):
-                    # Split value of @staff, as it may contain multiple values.
-                    values = el.getAttribute("staff").getValue().split()
-                    values = [ int(x) for x in values ]
-
-                    # Then check that any of the values are in s_nos.
-                    if len(set(values).intersection(s_nos)) > 0:
-                        return values
-                    else:
-                        values = []
-                return values
-
             for el in m.getChildren():
-                if _getSelectedStaffNosFor(el):
+                if self._getSelectedStaffNosFor(el):
                     data["around"].append(el)
 
             selected.append(data)
-
-        ## INCLUDE SPANNERS
-        # TODO MOVE THIS TO BEATS
-
-        # Locate events landing on or including this staff 
-        # from out of range measures (eg a long slur),
-        # and append to first measure in selection
-        m_idx = self.measureRange[0] - 1            
-        spanners = self.getMultiMeasureSpanners(m_idx)
-
-        # Include spanners from table 
-        for events in spanners.values():
-            for event_id in events:
-                event = self.meiDoc.getElementById(event_id)
-
-                # Determine staff of event for id changes
-                staff = 0
-                staff_nos = _getSelectedStaffNosFor(event)
-                if staff_nos:
-                    staff = s_nos.index(staff_nos[0])
-
-                # TODO: this should point to the first element available after the beat selection
-                # All of this should really happen in self.beats
-
-                # Truncate event to start at the beginning of the range
-                if event.hasAttribute("startid"):
-                    # Set startid to the first event on staff (first available layer)                            
-                    try:
-                        layer = selected[0]["on"][staff].getChildrenByName("layer")
-                        first_id = layer[0].getChildren()[0].getId()
-                        event.getAttribute("startid").setValue("#"+first_id)
-                    except IndexError:
-                        msg = """
-                            Unsupported encoding. Omas attempted to adjust the starting 
-                            point of a selected multi-measure element that starts before 
-                            the selection, but the staff or layer could not be located.
-                            """
-                        raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
-
-                if event.hasAttribute("tstamp"):
-                    # Set tstamp to 1 (equivalent to startid pointing at first event)
-                    # TODO: set to first beat in selection instead
-                    event.getAttribute("tstamp").setValue("1")
-
-                # Truncate to end of range if completeness = cut
-                if "cut" in self.completenessOptions:
-                    if event.hasAttribute("tstamp2"):
-                        att = event.getAttribute("tstamp2")
-                        t2 = att.getValue()
-                        p = re.compile(r"([1-9]+)(?=m\+)")
-                        multimeasure = p.match(t2)
-                        if multimeasure:
-                            new_val = len(mm) - 1
-                            att.setValue(p.sub(str(new_val), t2))
-                    if event.hasAttribute("endid"):                                                
-                        if events[event_id]["distance"] > 0:
-                            # Set end to the last event on staff
-                            try:
-                                layer = selected[-1]["on"][staff].getChildrenByName("layer")
-                                last_id = layer[0].getChildren()[-1].getId()
-                                event.getAttribute("endid").setValue("#"+last_id)
-                            except IndexError:
-                                msg = """
-                                    Unsupported encoding. Omas attempted to adjust the ending 
-                                    point of a selected multi-measure element that ends after 
-                                    the selection, but the staff or layer could not be located.
-                                    """
-                                raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
-
-                # Otherwise adjust tspan2 value to correct distance. 
-                # E.g. given 4 measures with a spanner originating in 1 and ending in 4
-                # and a selection of measures 2 and 3,
-                # change @tspan2 from 3m+X to 2m+X
-                else:                            
-                    if event.hasAttribute("tstamp2"): 
-                        att = event.getAttribute("tstamp2")
-                        t2 = att.getValue()
-                        p = re.compile(r"([1-9]+)(?=m\+)")
-                        multimeasure = p.match(t2)
-                        if multimeasure:
-                            new_val = int(multimeasure.group(1)) - events[event_id]["distance"]
-                            att.setValue(p.sub(str(new_val), t2))
-
-                # move element to first measure and add it to selected 
-                # events "around" the staff.
-                event.moveTo(mm[0])
-                selected[0]["around"].append(event)
 
         return selected
 
@@ -239,6 +136,7 @@ class MeiSlicer(object):
         """Return selected staves including only selected beats"""
         tstamps = self.beatRange
         m_idxs = self.measureRange
+        mm = self.measures
 
         # According to the API, the beat selection must be a range,
         # even when only one beat is selected.
@@ -370,8 +268,6 @@ class MeiSlicer(object):
                     if target in marked_for_removal["last"]:
                         event.getParent().removeChild(event)
 
-        # FINALLY
-
         # Remove elements marked for deletion
         for el in marked_for_removal["first"]:
             parent = el.getParent()
@@ -390,6 +286,90 @@ class MeiSlicer(object):
 
         for el in marked_for_removal["last"]:
             el.getParent().removeChild(el)
+
+        ## INCLUDE SPANNERS
+
+        # Locate events landing on or including this staff 
+        # from out of range measures (eg a long slur),
+        # and append to first measure in selection
+        m_idx = self.measureRange[0] - 1            
+        spanners = self.getMultiMeasureSpanners(m_idx)
+
+        # Include spanners from table 
+        for events in spanners.values():
+            for event_id in events:
+                event = self.meiDoc.getElementById(event_id)
+
+                # Determine staff of event for id changes
+                staff = 0
+                staff_nos = self._getSelectedStaffNosFor(event)
+                if staff_nos:
+                    staff = self.staffRange.index(staff_nos[0])
+
+                # Truncate event to start at the beginning of the beat range
+                if event.hasAttribute("startid"):
+                    # Set startid to the first event still on staff,
+                    # at the first available layer                           
+                    try:
+                        layer = staves_by_measure[0]["on"][staff].getChildrenByName("layer")
+                        first_id = layer[0].getChildren()[0].getId()
+                        event.getAttribute("startid").setValue("#"+first_id)
+                    except IndexError:
+                        msg = """
+                            Unsupported encoding. Omas attempted to adjust the starting 
+                            point of a selected multi-measure element that starts before 
+                            the selection, but the staff or layer could not be located.
+                            """
+                        raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
+
+                if event.hasAttribute("tstamp"):
+                    # Set tstamp to first in beat selection
+                    event.getAttribute("tstamp").setValue(str(tstamp_first))
+
+                # Truncate to end of range if completeness = cut
+                if "cut" in self.completenessOptions:
+                    if event.hasAttribute("tstamp2"):
+                        att = event.getAttribute("tstamp2")
+                        t2 = att.getValue()
+                        p = re.compile(r"([1-9]+)(?=m\+)")
+                        multimeasure = p.match(t2)
+                        if multimeasure:
+                            new_val = len(mm) - 1
+                            att.setValue(p.sub(str(new_val), t2))
+                    if event.hasAttribute("endid"):                                                
+                        if events[event_id]["distance"] > 0:
+                            # Set end to the last event on staff
+                            try:
+                                layer = staves_by_measure[-1]["on"][staff].getChildrenByName("layer")
+                                last_id = layer[0].getChildren()[-1].getId()
+                                event.getAttribute("endid").setValue("#"+last_id)
+                            except IndexError:
+                                msg = """
+                                    Unsupported encoding. Omas attempted to adjust the ending 
+                                    point of a selected multi-measure element that ends after 
+                                    the selection, but the staff or layer could not be located.
+                                    """
+                                raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
+
+                # Otherwise adjust tspan2 value to correct distance. 
+                # E.g. given 4 measures with a spanner originating in 1 and ending in 4
+                # and a selection of measures 2 and 3,
+                # change @tspan2 from 3m+X to 2m+X
+                else:                            
+                    if event.hasAttribute("tstamp2"): 
+                        att = event.getAttribute("tstamp2")
+                        t2 = att.getValue()
+                        p = re.compile(r"([1-9]+)(?=m\+)")
+                        multimeasure = p.match(t2)
+                        if multimeasure:
+                            new_val = int(multimeasure.group(1)) - events[event_id]["distance"]
+                            att.setValue(p.sub(str(new_val), t2))
+
+                # move element to first measure and add it to selected 
+                # events "around" the staff.
+                event.moveTo(mm[0])
+                staves_by_measure[0]["around"].append(event)
+
 
         return self.staves
 
@@ -581,6 +561,21 @@ class MeiSlicer(object):
 
         return self.meiDoc
 
+    def _getSelectedStaffNosFor(self, el):
+        """ Get staff numbers of element if the staves are selected"""
+        #TODO: CAREFUL - EDITORIAL MARKUP MAY OBFUSCATE THIS
+        values = []
+        if el.hasAttribute("staff"):
+            # Split value of @staff, as it may contain multiple values.
+            values = el.getAttribute("staff").getValue().split()
+            values = [ int(x) for x in values ]
+
+            # Then check that any of the values are in s_nos.
+            if len(set(values).intersection(self.staffRange)) > 0:
+                return values
+            else:
+                values = []
+        return values
 
     def _parseNumericRanges(self, rang):
         """Generic method for parsing ranges as specified in the EMA API"""
