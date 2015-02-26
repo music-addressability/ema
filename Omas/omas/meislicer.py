@@ -502,18 +502,20 @@ class MeiSlicer(object):
             if el.getName() == "scoreDef":
                 scoreDef = el
 
-        # Remove definitions of unselected staves
+        # Remove definitions of unselected staves everywhere
         s_nos = self.staffRange
-
-        for sd in scoreDef.getDescendantsByName("staffDef"):            
+        root = self.meiDoc.getRootElement()
+        for sd in root.getDescendantsByName("staffDef"):            
             if sd.hasAttribute("n"):
                 if not int(sd.getAttribute("n").getValue()) in s_nos:
+                    sd.getParent().removeChild(sd)
                     # Remove parent staffGrp if this is the last staffDef
                     sg = sd.getAncestor("staffGrp")
-                    if len(sg.getDescendantsByName("staffDef")) == 1:
-                        sg.getParent().removeChild(sg)
-                    else:
-                        sd.getParent().removeChild(sd)
+                    if sg:
+                        if len(sg.getDescendantsByName("staffDef")) <= 1:
+                            sg.getParent().removeChild(sg)
+                        else:
+                            sd.getParent().removeChild(sd)
         
         # Recursively remove elements before and after selected measures
         _removeBefore(m_first)
