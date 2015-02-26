@@ -204,15 +204,16 @@ class MeiSlicer(object):
         # on-staff elements
         for staff in staves_by_measure[0]["on"]:
             # Find all descendants with att.duration.musical (@dur)
-            cur_beat = 0.0
             if staff: #staves can also be "silent"
-                for el in staff.getDescendants():
-                    if el.hasAttribute("dur"):
-                        cur_beat += _calculateDur(el, meter_first)
-                        # exclude descendants before tstamp, 
-                        # unless they end after or on tstamp
-                        if cur_beat < tstamp_first: 
-                            marked_for_removal["first"].append(el)
+                for layer in staff.getDescendantsByName("layer"):
+                    cur_beat = 0.0
+                    for el in layer.getDescendants():
+                        if el.hasAttribute("dur"):
+                            cur_beat += _calculateDur(el, meter_first)
+                            # exclude descendants before tstamp, 
+                            # unless they end after or on tstamp
+                            if cur_beat < tstamp_first: 
+                                marked_for_removal["first"].append(el)
 
         # remove elements in first measure around staves (aka control events)
         for event in staves_by_measure[0]["around"]:
@@ -236,20 +237,21 @@ class MeiSlicer(object):
         # on-staff elements
         for staff in staves_by_measure[-1]["on"]:
             # Find all descendants with att.duration.musical (@dur)
-            cur_beat = 1.0
             if staff: #staves can also be "silent"
-                for el in staff.getDescendants():
-                    if el.hasAttribute("dur"):
-                        dur = _calculateDur(el, meter_final)
-                        # exclude decendants after tstamp
-                        if cur_beat > tstamp_final: 
-                            marked_for_removal["last"].append(el)
-                        else:
-                            # Cut the duration of the last element if completeness = cut
-                            if cur_beat + dur > tstamp_final and "cut" in self.completenessOptions:
-                                _cutDuration(el, meter_final)
-                        # continue
-                        cur_beat += dur
+                for layer in staff.getDescendantsByName("layer"):
+                    cur_beat = 1.0
+                    for el in layer.getDescendants():
+                        if el.hasAttribute("dur"):
+                            dur = _calculateDur(el, meter_final)
+                            # exclude decendants after tstamp
+                            if cur_beat > tstamp_final: 
+                                marked_for_removal["last"].append(el)
+                            else:
+                                # Cut the duration of the last element if completeness = cut
+                                if cur_beat + dur > tstamp_final and "cut" in self.completenessOptions:
+                                    _cutDuration(el, meter_final)
+                            # continue
+                            cur_beat += dur
 
         # remove elements in last measure around staves (aka control events)
         for event in staves_by_measure[-1]["around"]:
