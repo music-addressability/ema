@@ -306,14 +306,14 @@ class MeiSlicer(object):
         # Start by counting durations of on-staff elements
         for staff in staves[-1]["on"]:
             # Find all descendants with att.duration.musical (@dur)
-            cur_beat = 0.0
+            cur_beat = 1.0
             if staff: #staves can also be "silent"
                 for el in staff.getDescendants():
                     if el.hasAttribute("dur"):
-                        cur_beat += _calculateDur(el, meter_final)
                         # exclude decendants after tstamp
                         if cur_beat > tstamp_final: 
                             marked_for_removal["last"].append(el)
+                        cur_beat += _calculateDur(el, meter_final)
 
         # Remove elements marked for deletion
         for el in marked_for_removal["first"]:
