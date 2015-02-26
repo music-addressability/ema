@@ -146,6 +146,7 @@ class MeiSlicer(object):
             selected.append(data)
 
         ## INCLUDE SPANNERS
+        # TODO MOVE THIS TO BEATS
 
         # Locate events landing on or including this staff 
         # from out of range measures (eg a long slur),
@@ -164,6 +165,9 @@ class MeiSlicer(object):
                 if staff_nos:
                     staff = s_nos.index(staff_nos[0])
 
+                # TODO: this should point to the first element available after the beat selection
+                # All of this should really happen in self.beats
+
                 # Truncate event to start at the beginning of the range
                 if event.hasAttribute("startid"):
                     # Set startid to the first event on staff (first available layer)                            
@@ -181,6 +185,7 @@ class MeiSlicer(object):
 
                 if event.hasAttribute("tstamp"):
                     # Set tstamp to 1 (equivalent to startid pointing at first event)
+                    # TODO: set to first beat in selection instead
                     event.getAttribute("tstamp").setValue("1")
 
                 # Truncate to end of range if completeness = cut
@@ -294,12 +299,12 @@ class MeiSlicer(object):
         # calcualtions are accurate.
         marked_for_removal = {"first" : [], "last" : []}
 
-        staves = self.staves
+        staves_by_measure = self.staves
 
         # FIRST MEASURE
 
-        # Start by counting durations of on-staff elements
-        for staff in staves[0]["on"]:
+        # on-staff elements
+        for staff in staves_by_measure[0]["on"]:
             # Find all descendants with att.duration.musical (@dur)
             cur_beat = 0.0
             if staff: #staves can also be "silent"
@@ -311,10 +316,27 @@ class MeiSlicer(object):
                         if cur_beat < tstamp_first: 
                             marked_for_removal["first"].append(el)
 
+        # remove elements in first measure around staves (aka control events)
+        for event in staves_by_measure[0]["around"]:
+            if event.hasAttribute("tstamp"):
+                if int(event.getAttribute("tstamp").getValue()) < tstamp_first:
+                    event.getParent().removeChild(event)
+            elif event.hasAttribute("startid"):
+                startid = event.getAttribute("startid").getValue().replace("#", "")
+                target = self.meiDoc.getElementById(startid)
+                # Make sure the target event is in the same measure
+                if not event.getAncestor("measure").getId() == target.getAncestor("measure").getId():
+                    msg = """Unsupported Encoding: attribute startid on element {0} does not
+                    point to an element in the same measure.""".format(event.getName())
+                    raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
+                else:
+                    if target in marked_for_removal["first"]:
+                        event.getParent().removeChild(event)
+
         # LAST MEASURE
 
-        # Start by counting durations of on-staff elements
-        for staff in staves[-1]["on"]:
+        # on-staff elements
+        for staff in staves_by_measure[-1]["on"]:
             # Find all descendants with att.duration.musical (@dur)
             cur_beat = 1.0
             if staff: #staves can also be "silent"
@@ -331,6 +353,24 @@ class MeiSlicer(object):
                         # continue
                         cur_beat += dur
 
+        # remove elements in last measure around staves (aka control events)
+        for event in staves_by_measure[-1]["around"]:
+            if event.hasAttribute("tstamp"):
+                if int(event.getAttribute("tstamp").getValue()) > tstamp_final:
+                    event.getParent().removeChild(event)
+            elif event.hasAttribute("startid"):
+                startid = event.getAttribute("startid").getValue().replace("#", "")
+                target = self.meiDoc.getElementById(startid)
+                # Make sure the target event is in the same measure
+                if not event.getAncestor("measure").getId() == target.getAncestor("measure").getId():
+                    msg = """Unsupported Encoding: attribute startid on element {0} does not
+                    point to an element in the same measure.""".format(event.getName())
+                    raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
+                else:
+                    if target in marked_for_removal["last"]:
+                        event.getParent().removeChild(event)
+
+        # FINALLY
 
         # Remove elements marked for deletion
         for el in marked_for_removal["first"]:
@@ -447,12 +487,14 @@ class MeiSlicer(object):
         m_final = mm[-1]
 
         # Go through the children of selected measures. 
-        # Keep those matching elements in m["on"] and m["around"].
+        # Keep those matching elements in measure["on"] and measure["around"].
 
         selected = self.beats
 
         for i, m in enumerate(mm):
-            for el in m.getChildren():
+            # Casting MeiElementList to Python list to avoid modifying the sequence while
+            # looping through and removing elements.
+            for el in list(m.getChildren()):
                 if el not in selected[i]["on"] and el not in selected[i]["around"]:
                     m.removeChild(el)
 
@@ -464,7 +506,8 @@ class MeiSlicer(object):
         def _removeBefore(curEl):
             parent = curEl.getParent()
             if parent:
-                for el in curEl.getPeers():
+                # Casting to list to avoid modfying the sequence
+                for el in list(curEl.getPeers()):
                     if el == curEl:
                         break
                     else:
@@ -477,7 +520,8 @@ class MeiSlicer(object):
             parent = curEl.getParent()
             if parent:
                 removing = False
-                for el in curEl.getPeers():
+                # Casting to list to avoid modfying the sequence
+                for el in list(curEl.getPeers()):
                     if removing:
                         if not el.getName() in keep:
                             parent.removeChild(el)
@@ -505,7 +549,7 @@ class MeiSlicer(object):
         # Remove definitions of unselected staves everywhere
         s_nos = self.staffRange
         root = self.meiDoc.getRootElement()
-        for sd in root.getDescendantsByName("staffDef"):            
+        for sd in list(root.getDescendantsByName("staffDef")):
             if sd.hasAttribute("n"):
                 if not int(sd.getAttribute("n").getValue()) in s_nos:
                     sd.getParent().removeChild(sd)
