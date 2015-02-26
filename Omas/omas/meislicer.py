@@ -258,7 +258,16 @@ class MeiSlicer(object):
             if event.hasAttribute("tstamp"):
                 if int(event.getAttribute("tstamp").getValue()) > tstamp_final:
                     event.getParent().removeChild(event)
-            elif event.hasAttribute("startid"):
+                else:
+                    # truncate if completeness = cut
+                    if "cut" in self.completenessOptions and event.hasAttribute("tstamp2"):
+                        att = event.getAttribute("tstamp2")
+                        t2 = att.getValue()
+                        p = re.compile(r"([1-9]+)(?=m\+)")
+                        multimeasure = p.match(t2)
+                        if multimeasure:
+                            att.setValue(str(tstamp_final))
+            if event.hasAttribute("startid"):
                 startid = event.getAttribute("startid").getValue().replace("#", "")
                 target = self.meiDoc.getElementById(startid)
                 # Make sure the target event is in the same measure
@@ -269,6 +278,32 @@ class MeiSlicer(object):
                 else:
                     if target in marked_for_removal["last"]:
                         event.getParent().removeChild(event)
+                    else:
+                        # truncate if completeness = cut
+                        if "cut" in self.completenessOptions and event.hasAttribute("endid"):
+                            # Determine staff of event for id change
+                            staff = 0
+                            staff_nos = self._getSelectedStaffNosFor(event)
+                            if staff_nos:
+                                staff = self.staffRange.index(staff_nos[0])
+
+                            # Set end to the last event on staff
+                            # TODO: use @layer attribute if present
+                            try:
+                                layer = staves_by_measure[-1]["on"][staff].getChildrenByName("layer")
+                                els = layer[0].getChildren()
+                                for e in reversed(els):
+                                    if e not in marked_for_removal["last"]:
+                                        event.getAttribute("endid").setValue("#"+e.getId())
+                                        break
+                            except IndexError:
+                                msg = """
+                                    Unsupported encoding. Omas attempted to adjust the ending 
+                                    point of a selected multi-measure element that ends after 
+                                    the selection, but the staff or layer could not be located.
+                                    """
+                                raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
+
 
         # Remove elements marked for deletion
         for el in marked_for_removal["first"]:
