@@ -27,7 +27,7 @@ OmasClient.Info = Backbone.Model.extend({
 
 });
 
-// OmasClient.InfoData = new OmasClient.Info;
+OmasClient.Content = Backbone.Model;
 
 // Backbone views
 
@@ -88,25 +88,18 @@ OmasClient.App = Backbone.View.extend({
         reqUrl += "/" + options_str;
       }
 
-      var pre = $("<pre />"),
-          code = $("<code class='language-markup'/>");
-          download = $('<a class="btn btn-default" aria-label="Download"' 
-            + 'href="' + reqUrl
-            + '"><span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>' 
-            + '  Download MEI</a>');
-
-      pre.html(code);
-
       $.get(reqUrl, function (data) {
         doc = (new XMLSerializer()).serializeToString(data);
-        doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;")          
-        code.html(doc);
-        $("#mei").html(pre);
-        pre.after(download);
+        doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        new OmasClient.ContentView({model : 
+          new OmasClient.Content({reqUrl: reqUrl, lang: "markup", data: doc})
+        }).render();
         Prism.highlightAll();    
       }).fail( function (resp) {
-        code.html(JSON.stringify(resp.responseJSON, undefined, 2));
-        $("#mei").html(pre);
+        data = JSON.stringify(resp.responseJSON, undefined, 2);
+        // new OmasClient.InfoView(
+        //   {model : new OmasClient.Content({"reqUrl": reqUrl, "lang": "json", "data":data})}
+        // ).render();
         Prism.highlightAll();
         pre.after(download);
       });
@@ -131,11 +124,24 @@ OmasClient.InfoView = Backbone.View.extend({
   render: function () {    
     var j = this.model.toJSON();
     // Paste the JSON as is 
-    var p = $("<pre class='pre-scrollable'/>");
+    var p = $("<pre/>");
     p.html(JSON.stringify(j, undefined, 2));
     this.$el.find("#json").html(p);
     // Render summary view
     this.$el.find("#summary").html(this.template(j));
+  }
+
+});
+
+OmasClient.ContentView = Backbone.View.extend({
+
+  template: _.template($('#mei-tpl').html()),
+
+  el: "#mei",
+
+  render: function () { 
+    // Render summary view
+    this.$el.html(this.template(this.model.toJSON()));
   }
 
 });
