@@ -87,18 +87,22 @@ OmasClient.App = Backbone.View.extend({
       if (options_str) {
         reqUrl += "/" + options_str;
       }
-      console.log(reqUrl);
+
+      var pre = $("<pre/>"),
+          code = $("<code class='language-markup'/>");
+
+      pre.html(code);
 
       $.get(reqUrl, function (data) {
-        var p = $("<pre class='pre-scrollable'/>");
         doc = (new XMLSerializer()).serializeToString(data);
         doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;")          
-        p.html(doc);
-        $("#mei").html(p);        
+        code.html(doc);
+        $("#mei").html(pre);   
+        Prism.highlightAll();    
       }).fail( function (resp) {
-        var p = $("<pre class='pre-scrollable'/>");
-        p.html(JSON.stringify(resp.responseJSON, undefined, 2));
-        $("#mei").html(p);
+        code.html(JSON.stringify(resp.responseJSON, undefined, 2));
+        $("#mei").html(pre);
+        Prism.highlightAll();
       });
     }
   }
