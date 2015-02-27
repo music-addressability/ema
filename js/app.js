@@ -88,8 +88,12 @@ OmasClient.App = Backbone.View.extend({
         reqUrl += "/" + options_str;
       }
 
-      var pre = $("<pre/>"),
+      var pre = $("<pre />"),
           code = $("<code class='language-markup'/>");
+          download = $('<a class="btn btn-default" aria-label="Download"' 
+            + 'href="' + reqUrl
+            + '"><span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>' 
+            + '  Download MEI</a>');
 
       pre.html(code);
 
@@ -97,12 +101,14 @@ OmasClient.App = Backbone.View.extend({
         doc = (new XMLSerializer()).serializeToString(data);
         doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;")          
         code.html(doc);
-        $("#mei").html(pre);   
+        $("#mei").html(pre);
+        pre.after(download);
         Prism.highlightAll();    
       }).fail( function (resp) {
         code.html(JSON.stringify(resp.responseJSON, undefined, 2));
         $("#mei").html(pre);
         Prism.highlightAll();
+        pre.after(download);
       });
     }
   }
