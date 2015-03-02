@@ -1,2 +1,4 @@
 *.pyc
 Omas/Omas.egg-info
+
+.DS_Store
