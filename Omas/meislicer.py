@@ -8,7 +8,7 @@ from pymeiext import getClosestStaffDefs, moveTo
 
 
 class MeiSlicer(object):
-    """A class to slice an MEI document provided a range of 
+    """A class to slice an MEI document provided a range of
     measures, staves, and beats."""
     def __init__(self, doc, measures, staves, beats, completeness):
         self.meiDoc = doc
@@ -33,10 +33,10 @@ class MeiSlicer(object):
         """Return list of indexes of requested staves"""
 
         # Locate number of staved defined at beggining of selection
-        m = self.measureRange[0]-1        
+        m = self.measureRange[0] - 1
         info = self.docInfo["staves"]
-        closestDef = str(min(info, key=lambda x:abs(int(x)-int(m))))
-        
+        closestDef = str(min(info, key=lambda x: abs(int(x)-int(m))))
+
         end = str(len(info[closestDef]))
 
         rang = self.requested_staves.replace("start", "1").replace("end", end)
@@ -49,7 +49,7 @@ class MeiSlicer(object):
 
         m = self.measureRange[-1]
         info = self.docInfo["beats"]
-        closestDef = str(min(info, key=lambda x:abs(int(x)-int(m))))
+        closestDef = str(min(info, key=lambda x: abs(int(x)-int(m))))
 
         end = str(info[closestDef]["count"])
 
@@ -62,7 +62,6 @@ class MeiSlicer(object):
         """Return list of completeness options"""
 
         opts = []
-        
         if self.completeness:
             opts = self.completeness.split(",")
 
@@ -92,7 +91,6 @@ class MeiSlicer(object):
         """Return selected staves"""
         selected = []
         s_nos = self.staffRange
-        
         # Make sure that required staves are not out of bounds.
         mm = self.measures
         sds = [int(sd.getAttribute("n").getValue()) for sd in mm[0].getClosestStaffDefs()]
@@ -103,11 +101,11 @@ class MeiSlicer(object):
 
         for i, m in enumerate(mm):
             data = {
-              "on"     : [], # list of selected staves
-              "around" : []  # list of elements affecting *all* selected staves
+              "on": [],  # list of selected staves
+              "around": []   # list of elements affecting *all* selected staves
             }
 
-            ## Getting events ON staff ##
+            # Getting events ON staff ##
 
             # If staff elements have @n, use it to select the correct staff,
             # otherwise default to element position order.
@@ -121,7 +119,7 @@ class MeiSlicer(object):
                     if len(staves) >= n:
                         data["on"].append(staves[n])
 
-            ## Getting events AROUND a staff ##
+            # Getting events AROUND a staff ##
 
             for el in m.getChildren():
                 if self._getSelectedStaffNosFor(el):
@@ -195,7 +193,7 @@ class MeiSlicer(object):
         # Set a dictionary of elements marked for removal, organized by measure
         # Elements are not removed immediately to make sure that beat
         # calcualtions are accurate.
-        marked_for_removal = {"first" : [], "last" : []}
+        marked_for_removal = {"first": [], "last": []}
 
         staves_by_measure = self.staves
 
@@ -204,15 +202,15 @@ class MeiSlicer(object):
         # on-staff elements
         for staff in staves_by_measure[0]["on"]:
             # Find all descendants with att.duration.musical (@dur)
-            if staff: #staves can also be "silent"
+            if staff:  # staves can also be "silent"
                 for layer in staff.getDescendantsByName("layer"):
                     cur_beat = 0.0
                     for el in layer.getDescendants():
                         if el.hasAttribute("dur"):
                             cur_beat += _calculateDur(el, meter_first)
-                            # exclude descendants before tstamp, 
+                            # exclude descendants before tstamp,
                             # unless they end after or on tstamp
-                            if cur_beat < tstamp_first: 
+                            if cur_beat < tstamp_first:
                                 marked_for_removal["first"].append(el)
 
         # remove elements in first measure around staves (aka control events)
@@ -237,14 +235,14 @@ class MeiSlicer(object):
         # on-staff elements
         for staff in staves_by_measure[-1]["on"]:
             # Find all descendants with att.duration.musical (@dur)
-            if staff: #staves can also be "silent"
+            if staff:  # staves can also be "silent"
                 for layer in staff.getDescendantsByName("layer"):
                     cur_beat = 1.0
                     for el in layer.getDescendants():
                         if el.hasAttribute("dur"):
                             dur = _calculateDur(el, meter_final)
                             # exclude decendants after tstamp
-                            if cur_beat > tstamp_final: 
+                            if cur_beat > tstamp_final:
                                 marked_for_removal["last"].append(el)
                             else:
                                 # Cut the duration of the last element if completeness = cut
@@ -298,12 +296,11 @@ class MeiSlicer(object):
                                         break
                             except IndexError:
                                 msg = """
-                                    Unsupported encoding. Omas attempted to adjust the ending 
-                                    point of a selected multi-measure element that ends after 
+                                    Unsupported encoding. Omas attempted to adjust the ending
+                                    point of a selected multi-measure element that ends after
                                     the selection, but the staff or layer could not be located.
                                     """
                                 raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
-
 
         # Remove elements marked for deletion
         for el in marked_for_removal["first"]:
@@ -317,22 +314,22 @@ class MeiSlicer(object):
                     space.addAttribute(el.getAttribute("dots"))
                 elif el.getChildrenByName("dot"):
                     dots = str(len(el.getChildrenByName("dot")))
-                    space.addAttribute( MeiAttribute("dots", dots) )
+                    space.addAttribute(MeiAttribute("dots", dots))
                 parent.addChildBefore(el, space)
             el.getParent().removeChild(el)
 
         for el in marked_for_removal["last"]:
             el.getParent().removeChild(el)
 
-        ## INCLUDE SPANNERS
+        # INCLUDE SPANNERS
 
-        # Locate events landing on or including this staff 
+        # Locate events landing on or including this staff
         # from out of range measures (eg a long slur),
         # and append to first measure in selection
-        m_idx = self.measureRange[0] - 1            
+        m_idx = self.measureRange[0] - 1
         spanners = self.getMultiMeasureSpanners(m_idx)
 
-        # Include spanners from table 
+        # Include spanners from table
         for events in spanners.values():
             for event_id in events:
                 event = self.meiDoc.getElementById(event_id)
@@ -346,15 +343,15 @@ class MeiSlicer(object):
                 # Truncate event to start at the beginning of the beat range
                 if event.hasAttribute("startid"):
                     # Set startid to the first event still on staff,
-                    # at the first available layer                           
+                    # at the first available layer
                     try:
                         layer = staves_by_measure[0]["on"][staff].getChildrenByName("layer")
                         first_id = layer[0].getChildren()[0].getId()
                         event.getAttribute("startid").setValue("#"+first_id)
                     except IndexError:
                         msg = """
-                            Unsupported encoding. Omas attempted to adjust the starting 
-                            point of a selected multi-measure element that starts before 
+                            Unsupported encoding. Omas attempted to adjust the starting
+                            point of a selected multi-measure element that starts before
                             the selection, but the staff or layer could not be located.
                             """
                         raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
@@ -373,7 +370,7 @@ class MeiSlicer(object):
                         if multimeasure:
                             new_val = len(mm) - 1
                             att.setValue(p.sub(str(new_val), t2))
-                    if event.hasAttribute("endid"):                                                
+                    if event.hasAttribute("endid"):
                         if events[event_id]["distance"] > 0:
                             # Set end to the last event on staff
                             try:
@@ -382,18 +379,18 @@ class MeiSlicer(object):
                                 event.getAttribute("endid").setValue("#"+last_id)
                             except IndexError:
                                 msg = """
-                                    Unsupported encoding. Omas attempted to adjust the ending 
-                                    point of a selected multi-measure element that ends after 
+                                    Unsupported encoding. Omas attempted to adjust the ending
+                                    point of a selected multi-measure element that ends after
                                     the selection, but the staff or layer could not be located.
                                     """
                                 raise UnsupportedEncoding(re.sub(r'\s+', ' ', msg.strip()))
 
-                # Otherwise adjust tspan2 value to correct distance. 
+                # Otherwise adjust tspan2 value to correct distance.
                 # E.g. given 4 measures with a spanner originating in 1 and ending in 4
                 # and a selection of measures 2 and 3,
                 # change @tspan2 from 3m+X to 2m+X
-                else:                            
-                    if event.hasAttribute("tstamp2"): 
+                else:
+                    if event.hasAttribute("tstamp2"):
                         att = event.getAttribute("tstamp2")
                         t2 = att.getValue()
                         p = re.compile(r"([1-9]+)(?=m\+)")
@@ -402,16 +399,15 @@ class MeiSlicer(object):
                             new_val = int(multimeasure.group(1)) - events[event_id]["distance"]
                             att.setValue(p.sub(str(new_val), t2))
 
-                # move element to first measure and add it to selected 
+                # move element to first measure and add it to selected
                 # events "around" the staff.
                 event.moveTo(mm[0])
                 staves_by_measure[0]["around"].append(event)
 
-
         return self.staves
 
     def getMultiMeasureSpanners(self, end=-1):
-        """Return a dictionary of spanning elements ecompassing, 
+        """Return a dictionary of spanning elements ecompassing,
            or landing or starting within selected measures"""
         mm = self.musicEl.getDescendantsByName("measure")
         table = {}
@@ -431,16 +427,17 @@ class MeiSlicer(object):
         # }
 
         def _calculateDistance(origin):
-            """ Calcualte distance of origin measure from 
+            """ Calcualte distance of origin measure from
                 first measure in selection """
             # Cast MeiElementList to python list
             list_mm = list(mm)
             return list_mm.index(self.measures[0]) - list_mm.index(origin)
 
-        # Exclude end measure index from request, 
+        # Exclude end measure index from request,
         # unless last measure is requested (creates table for whole file).
-        if end == -1: end = len(mm) + 1 
-        
+        if end == -1:
+            end = len(mm) + 1
+
         # Look back through measures and build a table of events
         # spanning multiple measures via tstamp/tstamp2 or startid/endid pairs.
         for i, prev_m in enumerate(mm[:end]):
@@ -465,30 +462,33 @@ class MeiSlicer(object):
                             dest_id = destination.getId()
                             distance = _calculateDistance(prev_m)
                             el_id = el.getId()
-                            
-                            if dest_id not in table: table[dest_id] = {}
+
+                            if dest_id not in table:
+                                table[dest_id] = {}
+
                             table[dest_id][el_id] = {
-                                "origin" : m_id,
-                                "distance" : distance,
+                                "origin": m_id,
+                                "distance": distance,
                                 "endid": endid
                             }
                             if el.hasAttribute("startid"):
                                 startid = el.getAttribute("startid").getValue().replace("#", "")
                                 table[dest_id][el_id]["startid"] = startid
                 elif el.hasAttribute("tstamp2"):
-                    t2 = el.getAttribute("tstamp2").getValue() 
+                    t2 = el.getAttribute("tstamp2").getValue()
                     multiMesSpan = re.match(r"([1-9]+)m\+", t2)
-                    if multiMesSpan:                        
-                        destination = mm[ i + int(multiMesSpan.group(1)) ]
+                    if multiMesSpan:
+                        destination = mm[i + int(multiMesSpan.group(1))]
                         # Create table entry
                         dest_id = destination.getId()
                         distance = _calculateDistance(prev_m)
                         el_id = el.getId()
-                        
-                        if dest_id not in table: table[dest_id] = {}
+
+                        if dest_id not in table:
+                            table[dest_id] = {}
                         table[dest_id][el_id] = {
-                            "origin" : m_id,
-                            "distance" : distance,
+                            "origin": m_id,
+                            "distance": distance,
                             "tstamp2": t2
                         }
                         if el.hasAttribute("tstamp"):
@@ -498,12 +498,13 @@ class MeiSlicer(object):
 
     def select(self):
         """ Return a modified MEI doc containing the selected notation"""
+        print('running select')
 
         mm = self.measures
         m_first = mm[0]
         m_final = mm[-1]
 
-        # Go through the children of selected measures. 
+        # Go through the children of selected measures.
         # Keep those matching elements in measure["on"] and measure["around"].
 
         selected = self.beats
@@ -515,7 +516,7 @@ class MeiSlicer(object):
                 if el not in selected[i]["on"] and el not in selected[i]["around"]:
                     m.removeChild(el)
 
-        # Then recursively remove all unwanted siblings of selected measures.        
+        # Then recursively remove all unwanted siblings of selected measures.
 
         # List of elements to keep, to be adjusted according to parameters
         keep = ["meiHead"]
@@ -542,7 +543,7 @@ class MeiSlicer(object):
                     if removing:
                         if not el.getName() in keep:
                             parent.removeChild(el)
-                    elif el == curEl: 
+                    elif el == curEl:
                         removing = True
                 return _removeAfter(parent)
             return curEl
@@ -553,7 +554,7 @@ class MeiSlicer(object):
                 el2 = el2.getParent()
             return el1
 
-        # Compute closest score definition to start measure        
+        # Compute closest score definition to start measure
         allEls = self.meiDoc.getFlattenedTree()
         preceding = allEls[:m_first.getPositionInDocument()]
 
@@ -577,7 +578,7 @@ class MeiSlicer(object):
                             sg.getParent().removeChild(sg)
                         else:
                             sd.getParent().removeChild(sd)
-        
+
         # Recursively remove elements before and after selected measures
         _removeBefore(m_first)
         _removeAfter(m_final)
@@ -585,7 +586,6 @@ class MeiSlicer(object):
         # Then re-attach computed score definition
         sec_first = m_first.getAncestor("section")
         sec_first.getParent().addChildBefore(sec_first, scoreDef)
-
 
         if "raw" in self.completenessOptions:
             lca = _findLowestCommonAncestor(mm[0], mm[-1])
@@ -605,7 +605,7 @@ class MeiSlicer(object):
         if el.hasAttribute("staff"):
             # Split value of @staff, as it may contain multiple values.
             values = el.getAttribute("staff").getValue().split()
-            values = [ int(x) for x in values ]
+            values = [int(x) for x in values]
 
             # Then check that any of the values are in s_nos.
             if len(set(values).intersection(self.staffRange)) > 0:

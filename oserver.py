@@ -3,10 +3,10 @@ from urllib import unquote
 
 import requests
 from werkzeug.routing import BaseConverter
+from flask import Flask
 from flask import jsonify, send_file, make_response
-from flask.ext.restful import Api, Resource
+from flask.ext import restful
 
-from omas import omas
 from omas import meiinfo
 from omas import meislicer
 from omas.exceptions import CannotReadMEIException
@@ -16,6 +16,8 @@ from omas.exceptions import CannotAccessRemoteMEIException
 from omas.exceptions import UnknownMEIReadException
 from omas.exceptions import UnsupportedEncoding
 
+app = Flask(__name__)
+api = restful.Api(app)
 
 # CONVERTERS
 class OneOrRangeConverter(BaseConverter):
@@ -43,11 +45,11 @@ class OneOrMixedConverter(BaseConverter):
     def to_url(self, value):
         return value
 
-omas.url_map.converters['onex'] = OneOrMixedConverter
-omas.url_map.converters['oner'] = OneOrRangeConverter
+app.url_map.converters['onex'] = OneOrMixedConverter
+app.url_map.converters['oner'] = OneOrRangeConverter
 
 
-class MEIServiceResource(Resource):
+class MEIServiceResource(restful.Resource):
     """ Common methods for MEI Service Requests """
 
     def get_external_mei(self, meiaddr):
@@ -68,7 +70,7 @@ class Information(MEIServiceResource):
     def get(self, MEI_id):
         # if url.scheme == "http" or url.scheme == "https":
 
-        # the requests library shouldn't normally raise an exception, should it? 
+        # the requests library shouldn't normally raise an exception, should it?
         # If it fails it should return a status code....
         try:
             mei_as_text = self.get_external_mei(MEI_id)
@@ -126,8 +128,9 @@ class Address(MEIServiceResource):
         return send_file(filename, as_attachment=True, mimetype="application/xml")
 
 
-# Instantiate Api handler and add routes
-api = Api(omas)
 api.add_resource(Information, '/<path:MEI_id>/info.json')
 api.add_resource(Address, '/<path:MEI_id>/<oner:measures>/<onex:staves>/<oner:beats>',
                  '/<path:MEI_id>/<oner:measures>/<onex:staves>/<oner:beats>/<completeness>')
+
+if __name__ == "__main__":
+    app.run(debug=True)
