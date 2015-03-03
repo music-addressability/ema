@@ -218,7 +218,7 @@ class MeiSlicer(object):
         # remove elements in first measure around staves (aka control events)
         for event in staves_by_measure[0]["around"]:
             if event.hasAttribute("tstamp"):
-                if int(event.getAttribute("tstamp").getValue()) < tstamp_first:
+                if float(event.getAttribute("tstamp").getValue()) < tstamp_first:
                     event.getParent().removeChild(event)
             elif event.hasAttribute("startid"):
                 startid = event.getAttribute("startid").getValue().replace("#", "")
@@ -256,7 +256,7 @@ class MeiSlicer(object):
         # remove elements in last measure around staves (aka control events)
         for event in staves_by_measure[-1]["around"]:
             if event.hasAttribute("tstamp"):
-                if int(event.getAttribute("tstamp").getValue()) > tstamp_final:
+                if float(event.getAttribute("tstamp").getValue()) > tstamp_final:
                     event.getParent().removeChild(event)
                 else:
                     # truncate if completeness = cut
