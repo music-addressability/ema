@@ -3,10 +3,13 @@ from urllib import unquote
 
 import requests
 from werkzeug.routing import BaseConverter
-from flask import jsonify, send_file, make_response
-from flask.ext.restful import Api, Resource
+from flask import Flask
+from flask import jsonify
+from flask import send_file
+from flask import make_response
+from flask.ext.restful import Api
+from flask.ext.restful import Resource
 
-from omas import omas
 from omas import meiinfo
 from omas import meislicer
 from omas.exceptions import CannotReadMEIException
@@ -16,6 +19,7 @@ from omas.exceptions import CannotAccessRemoteMEIException
 from omas.exceptions import UnknownMEIReadException
 from omas.exceptions import UnsupportedEncoding
 
+app = Flask(__name__)
 
 # CONVERTERS
 class OneOrRangeConverter(BaseConverter):
@@ -43,8 +47,8 @@ class OneOrMixedConverter(BaseConverter):
     def to_url(self, value):
         return value
 
-omas.url_map.converters['onex'] = OneOrMixedConverter
-omas.url_map.converters['oner'] = OneOrRangeConverter
+app.url_map.converters['onex'] = OneOrMixedConverter
+app.url_map.converters['oner'] = OneOrRangeConverter
 
 
 class MEIServiceResource(Resource):
@@ -127,7 +131,10 @@ class Address(MEIServiceResource):
 
 
 # Instantiate Api handler and add routes
-api = Api(omas)
+api = Api(app)
 api.add_resource(Information, '/<path:MEI_id>/info.json')
 api.add_resource(Address, '/<path:MEI_id>/<oner:measures>/<onex:staves>/<oner:beats>',
                  '/<path:MEI_id>/<oner:measures>/<onex:staves>/<oner:beats>/<completeness>')
+
+if __name__ == '__main__':
+    app.run(debug=True)
