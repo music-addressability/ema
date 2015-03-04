@@ -1,0 +1,59 @@
+{
+  "@context": {
+    "ema" : "http://ema.mith.org/#",
+    "np" : "http://www.nanopub.org/nschema#",
+    "prov" : "http://www.w3.org/ns/prov#",
+    "oa" : "http://www.w3.org/ns/oa#",
+    "dctypes" : "http://purl.org/dc/dcmitype/",
+    "foaf" : "http://xmlns.com/foaf/0.1/",
+    "cnt" : "http://www.w3.org/2011/content#"
+  },
+  "@graph": [
+    {
+      "@id" : "ema:DCEx1",
+      "@type" : "np:Nanopublication",
+      "np:hasAssertion" : {"@id" : "ema:DCEx1Assertion"},
+      "np:hasProvenance" : {"@id" : "ema:DCEx1Provenance"},
+      "np:hasPublicationInfo" : {"@id" : "ema:DCEx1PubInfo"}
+    },
+    {
+      "@id" : "ema:DCEx1Assertion",
+      "oa:hasBody" : {
+        "@type" : "dctypes:Text",
+        "cnt:ContentAsText" : "Non imitative duo"
+      },
+      "oa:hasTarget" : [
+        {
+        "@type" : "oa:SpecificResource",
+        "oa:hasSource" : "http://ema.mith.org/http%3A%2F%2Fdigitalduchemin.org%2Fmei%2FDC0508.xml/1-2…"
+        },
+        {
+          "@type" : "oa:SpecificResource",
+          "oa:hasSource" : "http://ema.mith.org/http%3A%2F%2Fdigitalduchemin.org%2Fmei%2FDC0407.xml/3-4…"
+        }
+      ],
+      "oa:annotatedBy" : {"@id" : "ema:DCEx1Agent"}
+    },
+    {
+      "@id" : "ema:DCEx1Provenance",
+      "@graph" : {
+        "ema:DCEx1Assertion" : {
+          "prov:wasAttributedTo" : {"@id" : "ema:DCEx1Agent"}
+        }
+      }
+    },
+    {
+      "@id" : "ema:DCEx1PubInfo",
+      "@graph" : {
+        "ema:DCEx1" : {
+          "prov:wasAttributedTo" : "EMA Demo"
+        }  
+      }
+    },
+    {
+      "@id" : "ema:DCEx1Agent",
+      "@type" : "foaf:Person",
+      "foaf:name" : "Freedman, Richard"
+    }
+  ]
+}
