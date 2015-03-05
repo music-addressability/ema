@@ -1,14 +1,10 @@
-# coding=UTF-8
+import requests
 from urllib import unquote
 
-import requests
+from flask.ext.api import FlaskAPI
+from flask.ext.api import status
 from werkzeug.routing import BaseConverter
-from flask import Flask
-from flask import jsonify
 from flask import send_file
-from flask import make_response
-from flask.ext.restful import Api
-from flask.ext.restful import Resource
 
 from omas import meiinfo
 from omas import meislicer
@@ -19,7 +15,18 @@ from omas.exceptions import CannotAccessRemoteMEIException
 from omas.exceptions import UnknownMEIReadException
 from omas.exceptions import UnsupportedEncoding
 
-app = Flask(__name__)
+
+app = FlaskAPI(__name__)
+
+app.config['DEFAULT_RENDERERS'] = [
+    'flask.ext.api.renderers.JSONRenderer',
+    'flask.ext.api.renderers.BrowsableAPIRenderer',
+]
+
+app.config['DEFAULT_PARSERS'] = [
+    'flask.ext.api.parsers.JSONParser',
+]
+
 
 # CONVERTERS
 class OneOrRangeConverter(BaseConverter):
@@ -51,90 +58,72 @@ app.url_map.converters['onex'] = OneOrMixedConverter
 app.url_map.converters['oner'] = OneOrRangeConverter
 
 
-class MEIServiceResource(Resource):
-    """ Common methods for MEI Service Requests """
+def get_external_mei(meiaddr):
+    r = requests.get(unquote(meiaddr), timeout=15)
+    # Exeunt stage left if something went wrong.
+    if r.status_code != requests.codes.ok:
+        if r.status_code == 404:
+            raise CannotAccessRemoteMEIException("The MEI File could not be found")
+        else:
+            raise UnknownMEIReadException("An unknown error ocurred. Status code: {0}".format(r.status_code))
 
-    def get_external_mei(self, meiaddr):
-        r = requests.get(unquote(meiaddr), timeout=15)
-        # Exeunt stage left if something went wrong.
-        if r.status_code != requests.codes.ok:
-            if r.status_code == 404:
-                raise CannotAccessRemoteMEIException("The MEI File could not be found")
-            else:
-                raise UnknownMEIReadException("An unknown error ocurred. Status code: {0}".format(r.status_code))
-
-        return r.content
+    return r.content
 
 
-# RESOURCES
-class Information(MEIServiceResource):
-    """Return information about an MEI file. """
-    def get(self, MEI_id):
-        # if url.scheme == "http" or url.scheme == "https":
-
-        # the requests library shouldn't normally raise an exception, should it? 
-        # If it fails it should return a status code....
-        try:
-            mei_as_text = self.get_external_mei(MEI_id)
-        except CannotAccessRemoteMEIException as ex:
-            message, status = jsonify({"message": ex.message}), 400
-            return make_response(message, status)
-        except UnknownMEIReadException as ex:
-            message, status = jsonify({"message": ex.message}), 500
-            return make_response(message, status)
-
-        try:
-            parsed_mei = meiinfo.read_MEI(mei_as_text)
-        except CannotReadMEIException as ex:
-            # return a 500 server error with the exception message
-            message, status = jsonify({"message": ex.message}), 500
-            return make_response(message, status)
-
-        # it's possible that this will raise some exceptions too, so break it out.
-        try:
-            mus_doc_info = meiinfo.MusDocInfo(parsed_mei).get()
-        except BadApiRequest as ex:
-            message, status = jsonify({"message": ex.message}), 500
-            return make_response(message, status)
-
-        return jsonify(mus_doc_info)
+@app.route('/', methods=['GET'])
+def index():
+    return {'hello': 'world'}
 
 
-class Address(MEIServiceResource):
-    """Parse an addressing URL and return portion of MEI"""
-    def get(self, MEI_id, measures, staves, beats, completeness=None):
-        mei_as_text = self.get_external_mei(MEI_id)
+@app.route('/<path:meipath>/<oner:measures>/<onex:staves>/<oner:beats>', methods=["GET"])
+@app.route('/<path:meipath>/<oner:measures>/<onex:staves>/<oner:beats>/<completeness>', methods=["GET"])
+def address(meipath, measures, staves, beats, completeness=None):
+    mei_as_text = get_external_mei(meipath)
 
-        try:
-            parsed_mei = meiinfo.read_MEI(mei_as_text)
-        except CannotReadMEIException as ex:
-            message, status = jsonify({"message": ex.message}), 500
-            return make_response(message, status)
+    try:
+        parsed_mei = meiinfo.read_MEI(mei_as_text)
+    except CannotReadMEIException as ex:
+        return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
-        try:
-            mei_slice = meislicer.MeiSlicer(parsed_mei, measures, staves, beats, completeness).select()
-        except BadApiRequest as ex:
-            message, status = jsonify({"message": ex.message}), 400
-            return make_response(message, status)
-        except UnsupportedEncoding as ex:
-            message, status = jsonify({"message": ex.message}), 500
-            return make_response(message, status)
+    try:
+        mei_slice = meislicer.MeiSlicer(parsed_mei, measures, staves, beats, completeness).select()
+    except BadApiRequest as ex:
+        return {"message": ex.message}, status.HTTP_400_BAD_REQUEST
+    except UnsupportedEncoding as ex:
+        return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
-        # this will write it to a temporary directory automatically
-        try:
-            filename = meiinfo.write_MEI(mei_slice)
-        except CannotWriteMEIException as ex:
-            message, status = jsonify({"message": ex.message}), 500
-            return make_response(message, status)
+    # this will write it to a temporary directory automatically
+    try:
+        filename = meiinfo.write_MEI(mei_slice)
+    except CannotWriteMEIException as ex:
+        return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
-        return send_file(filename, as_attachment=True, mimetype="application/xml")
+    return send_file(filename, as_attachment=True, mimetype="application/xml")
 
 
-# Instantiate Api handler and add routes
-api = Api(app)
-api.add_resource(Information, '/<path:MEI_id>/info.json')
-api.add_resource(Address, '/<path:MEI_id>/<oner:measures>/<onex:staves>/<oner:beats>',
-                 '/<path:MEI_id>/<oner:measures>/<onex:staves>/<oner:beats>/<completeness>')
+@app.route('/<path:meipath>/info.json', methods=['GET'])
+def information(meipath):
+    try:
+        mei_as_text = get_external_mei(meipath)
+    except CannotAccessRemoteMEIException as ex:
+        return {"message": ex.message}, status.HTTP_400_BAD_REQUEST
+    except UnknownMEIReadException as ex:
+        return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
-if __name__ == '__main__':
+    try:
+        parsed_mei = meiinfo.read_MEI(mei_as_text)
+    except CannotReadMEIException as ex:
+        # return a 500 server error with the exception message
+        return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    # it's possible that this will raise some exceptions too, so break it out.
+    try:
+        mus_doc_info = meiinfo.MusDocInfo(parsed_mei).get()
+    except BadApiRequest as ex:
+        return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    return mus_doc_info
+
+
+if __name__ == "__main__":
     app.run(debug=True)
