@@ -54,8 +54,50 @@ class OneOrMixedConverter(BaseConverter):
     def to_url(self, value):
         return value
 
+class StavesConverter(BaseConverter):
+
+    def __init__(self, url_map):
+        super(StavesConverter, self).__init__(url_map)
+
+        self.regex = r'(?:((all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?))+(,|$))+)'
+
+    def to_python(self, value):
+        return value
+
+    def to_url(self, value):
+        return value
+
+class MeasuresConverter(BaseConverter):
+
+    def __init__(self, url_map):
+        super(MeasuresConverter, self).__init__(url_map)
+
+        self.regex = "(?:((all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?\+?))+(,|$)))"
+
+    def to_python(self, value):
+        return value
+
+    def to_url(self, value):
+        return value  
+
+class BeatsConverter(BaseConverter):
+
+    def __init__(self, url_map):
+        super(BeatsConverter, self).__init__(url_map)
+
+        self.regex = "(?:((@(all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?\+?)))+(,|$)))"
+
+        def to_python(self, value):
+            return value
+
+        def to_url(self, value):
+            return value 
+
 app.url_map.converters['onex'] = OneOrMixedConverter
 app.url_map.converters['oner'] = OneOrRangeConverter
+app.url_map.converters['staves'] = StavesConverter
+app.url_map.converters['measures'] = MeasuresConverter
+app.url_map.converters['beats'] = BeatsConverter
 
 
 def get_external_mei(meiaddr):
@@ -75,8 +117,8 @@ def index():
     return {'hello': 'world'}
 
 
-@app.route('/<path:meipath>/<oner:measures>/<onex:staves>/<oner:beats>', methods=["GET"])
-@app.route('/<path:meipath>/<oner:measures>/<onex:staves>/<oner:beats>/<completeness>', methods=["GET"])
+@app.route('/<path:meipath>/<staves:staves>/<measures:measures>/<beats:beats>', methods=["GET"])
+@app.route('/<path:meipath>/<staves:staves>/<measures:measures>/<beats:beats>/<completeness>', methods=["GET"])
 def address(meipath, measures, staves, beats, completeness=None):
     mei_as_text = get_external_mei(meipath)
 
