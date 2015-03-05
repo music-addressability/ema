@@ -1,5 +1,5 @@
 import unittest
-from api2 import app
+from api import app
 import json
 
 CHOPIN_MEI_URL = "https%3A%2F%2Fraw.githubusercontent.com%2Fmusic-encoding%2Fmusic-encoding%2Fmaster%2Fsamples%2FMEI2013%2FMusic%2FComplete%20examples%2FChopin_Etude_op.10_no.9.mei"
@@ -27,7 +27,7 @@ class ApiTest(unittest.TestCase):
     def test_single_staff_selector(self):
         url = CHOPIN_MEI_URL
         # grab all measures and all beats from staff 1
-        selector = url + "/1/all/all/"
+        selector = url + "/1/all/@all"
         resp = self.app.get(selector)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.mimetype, 'application/json')

@@ -1,5 +1,5 @@
 import unittest
-from api2 import app
+from api import app
 import json
 
 # def test_DC_file():
