@@ -1,9 +1,11 @@
 import requests
 from urllib import unquote
+import re
 
 from flask.ext.api import FlaskAPI
 from flask.ext.api import status
-from werkzeug.routing import BaseConverter
+from werkzeug.routing import BaseConverter 
+from werkzeug.routing import ValidationError
 from flask import send_file
 
 from omas import meiinfo
@@ -29,39 +31,17 @@ app.config['DEFAULT_PARSERS'] = [
 
 
 # CONVERTERS
-class OneOrRangeConverter(BaseConverter):
-
-    def __init__(self, url_map):
-        super(OneOrRangeConverter, self).__init__(url_map)
-        self.regex = '(?:(\d+|start)(-(\d+|end))?)'
-
-    def to_python(self, value):
-        return value
-
-    def to_url(self, value):
-        return value
-
-
-class OneOrMixedConverter(BaseConverter):
-
-    def __init__(self, url_map):
-        super(OneOrMixedConverter, self).__init__(url_map)
-        self.regex = '(?:(\d+|start)([-,](\d+|end))*)'
-
-    def to_python(self, value):
-        return value
-
-    def to_url(self, value):
-        return value
-
 class StavesConverter(BaseConverter):
 
     def __init__(self, url_map):
         super(StavesConverter, self).__init__(url_map)
 
-        self.regex = r'(?:((all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?))+(,|$))+)'
-
     def to_python(self, value):
+        # Testing the regular expression here because
+        # self.regex fails with complex expressions
+        match = re.match(r'(?:((all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?))+(,|$))+)', value)
+        if not match:
+            raise ValidationError()
         return value
 
     def to_url(self, value):
@@ -72,9 +52,10 @@ class MeasuresConverter(BaseConverter):
     def __init__(self, url_map):
         super(MeasuresConverter, self).__init__(url_map)
 
-        self.regex = "(?:((all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?\+?))+(,|$)))"
-
     def to_python(self, value):
+        match = re.match(r'(?:((all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?\+?))+(,|$)))', value)
+        if not match:
+            raise ValidationError()
         return value
 
     def to_url(self, value):
@@ -85,16 +66,15 @@ class BeatsConverter(BaseConverter):
     def __init__(self, url_map):
         super(BeatsConverter, self).__init__(url_map)
 
-        self.regex = "(?:((@(all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?\+?)))+(,|$)))"
+    def to_python(self, value):
+        match = re.match(r'(?:((@(all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?\+?)))+(,|$)))', value)
+        if not match:
+            raise ValidationError()
+        return value
 
-        def to_python(self, value):
-            return value
+    def to_url(self, value):
+        return value 
 
-        def to_url(self, value):
-            return value 
-
-app.url_map.converters['onex'] = OneOrMixedConverter
-app.url_map.converters['oner'] = OneOrRangeConverter
 app.url_map.converters['staves'] = StavesConverter
 app.url_map.converters['measures'] = MeasuresConverter
 app.url_map.converters['beats'] = BeatsConverter
@@ -114,8 +94,7 @@ def get_external_mei(meiaddr):
 
 @app.route('/', methods=['GET'])
 def index():
-    return {'hello': 'world'}
-
+    return "Welcome to Omas"
 
 @app.route('/<path:meipath>/<staves:staves>/<measures:measures>/<beats:beats>', methods=["GET"])
 @app.route('/<path:meipath>/<staves:staves>/<measures:measures>/<beats:beats>/<completeness>', methods=["GET"])
