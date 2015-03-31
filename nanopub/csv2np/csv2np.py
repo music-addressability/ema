@@ -60,7 +60,7 @@ class Nanopub(object):
         g.add((np, PROV.wasAttributedTo, Literal(ema), pubinfo))
 
         # Provenance
-        date = data[25]
+        date = data[csv_headers.index("timestamp")]
         try:
             creation_date = datetime.strptime(date, "%d/%m/%Y %H:%M:%S")
         except ValueError:
@@ -71,7 +71,7 @@ class Nanopub(object):
         timestamp = Literal(creation_date, datatype=XSD.dateTime)
         g.add((assertion, PROV.generatedAtTime, timestamp, provenance))
 
-        analyst = Literal(data[28])
+        analyst = Literal(data[csv_headers.index("analyst")])
         g.add((assertion, PROV.wasAttributedTo, analyst, provenance))
 
         # Assertion (OA)
@@ -80,8 +80,40 @@ class Nanopub(object):
         g.add((observation, OA.annotatedBy, analyst, assertion))
 
         # OA tags for analytical statements
-        columns = [1, 2, 3, 5, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 2,
-                   21, 22, 23, 24, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 37]
+        columns = [
+            csv_headers.index("cadence_final_tone"),
+            csv_headers.index("cadence_kind"),
+            csv_headers.index("cadence_alter"),
+            csv_headers.index("cadence_role_cantz"),
+            csv_headers.index("cadence_role_tenz"),
+            csv_headers.index("voices_53_lo"),
+            csv_headers.index("voices_53_up"),
+            csv_headers.index("voices_p3_lo"),
+            csv_headers.index("voices_p3_up"),
+            csv_headers.index("voices_p6_lo"),
+            csv_headers.index("voices_p6_up"),
+            csv_headers.index("other_formulas"),
+            csv_headers.index("other_pres_type"),
+            csv_headers.index("voice_role_up1_nim"),
+            csv_headers.index("voice_role_lo1_nim"),
+            csv_headers.index("voice_role_up2_nim"),
+            csv_headers.index("voice_role_lo2_nim"),
+            csv_headers.index("voice_role_dux1"),
+            csv_headers.index("voice_role_com1"),
+            csv_headers.index("voice_role_dux2"),
+            csv_headers.index("voice_role_com2"),
+            csv_headers.index("voice_role_above"),
+            csv_headers.index("voice_role_below"),
+            csv_headers.index("voice_role_fifth"),
+            csv_headers.index("voice_role_fourth"),
+            csv_headers.index("voice_role_un_oct"),
+            csv_headers.index("other_contrapuntal"),
+            csv_headers.index("text_treatment"),
+            csv_headers.index("repeat_exact_varied"),
+            csv_headers.index("repeat_kind"),
+            csv_headers.index("earlier_phrase"),
+            ]
+
         forbidden_values = ["none", "nocadence", ""]
 
         for l in columns:
@@ -91,7 +123,7 @@ class Nanopub(object):
                 self.addAssertionTag(label, value, observation)
 
         # OA body for free text comment
-        comment = data[0].strip()
+        comment = data[csv_headers.index("comment")].strip()
         if comment.lower() not in forbidden_values:
             body = BNode()
 
@@ -131,11 +163,33 @@ class Nanopub(object):
 
     def buildEMAurl(self):
         d = self.data
-        measures = "{0}-{1}".format(d[8], d[18])
+        start_m = d[csv_headers.index("start_measure")]
+        final_m = d[csv_headers.index("stop_measure")]
+        measures = "{0}-{1}".format(start_m, final_m)
         staves = []
 
-        staff_data = [10, 20, 26, 31, 32, 21, 9, 2, 16, 7, 17, 14, 24, 37, 23,
-                      35, 34, 29, 5, 12, 22]
+        staff_data = [
+            csv_headers.index("cadence_role_cantz"),
+            csv_headers.index("cadence_role_tenz"),
+            csv_headers.index("voices_53_lo"),
+            csv_headers.index("voices_53_up"),
+            csv_headers.index("voices_p3_lo"),
+            csv_headers.index("voices_p3_up"),
+            csv_headers.index("voices_p6_lo"),
+            csv_headers.index("voices_p6_up"),
+            csv_headers.index("voice_role_up1_nim"),
+            csv_headers.index("voice_role_lo1_nim"),
+            csv_headers.index("voice_role_up2_nim"),
+            csv_headers.index("voice_role_lo2_nim"),
+            csv_headers.index("voice_role_dux1"),
+            csv_headers.index("voice_role_com1"),
+            csv_headers.index("voice_role_dux2"),
+            csv_headers.index("voice_role_com2"),
+            csv_headers.index("voice_role_above"),
+            csv_headers.index("voice_role_below"),
+            csv_headers.index("voice_role_fifth"),
+            csv_headers.index("voice_role_fourth"),
+            csv_headers.index("voice_role_un_oct")]
 
         for s in staff_data:
             r_id = self.roleToIndex(d[s])
@@ -149,7 +203,7 @@ class Nanopub(object):
         if not staves_str:
             staves_str = "all"
 
-        dc_id = d[6][:6].upper()
+        dc_id = d[csv_headers.index("composition_number")][:6].upper()
         dcfile = "http://digitalduchemin.org/mei/{0}.xml".format(dc_id)
         dcfile = urllib.parse.quote(dcfile, "")
 
@@ -178,8 +232,9 @@ with open(csvpath) as csvfile:
         if i == 0:
             csv_headers = analysis
         else:
-            n = Nanopub(analysis, str(i))
-            filename = "np{0}.jsonld".format(i)
+            npid = analysis[csv_headers.index("id")]
+            n = Nanopub(analysis, npid)
+            filename = "np{0}.jsonld".format(npid)
             with open(os.path.join(out_dir, filename), 'wb') as f:
                 j = n.jsonld()
                 f.write(j)
