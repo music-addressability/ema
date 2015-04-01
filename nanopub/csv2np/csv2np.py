@@ -1,23 +1,43 @@
 #!/usr/bin/env python
 # coding=UTF-8
 
-import sys
 import csv
 import os
 import os.path
 import urllib.parse
+import argparse
+import logging
 from uuid import uuid4
 from datetime import datetime, timedelta
-from rdflib import ConjunctiveGraph, Namespace, URIRef, BNode, Literal
+from rdflib import ConjunctiveGraph, Namespace, URIRef, Literal
 from rdflib.plugin import register, Serializer
 from rdflib.namespace import RDF, RDFS, FOAF, XSD
+from trustyuri.rdf import RdfTransformer
 
-if len(sys.argv) != 3:
-    print('Usage: csv2np.py path_to_csv output_dir')
-    sys.exit(1)
+# Tell rdflib verbose logger to be quiet unless stricly necessary.
+logging.getLogger("rdflib").setLevel(logging.ERROR)
 
-csvpath = sys.argv[1]
-out_dir = sys.argv[2]
+
+parser = argparse.ArgumentParser(description='Convert a digitalduchemin.org \
+observation CSV export to a nanopublication graph.')
+parser.add_argument('csv_path', metavar='CSV', type=str, nargs='?',
+                    help='path to the CSV file')
+parser.add_argument('out_dir', metavar='output', type=str, nargs='?',
+                    help='path to an output directory')
+parser.add_argument('--jsonld', '-j', dest='format', action='store_const',
+                    const="jsonld",
+                    help='serialize as JSON-LD')
+parser.add_argument('--nquads', '-n', dest='format', action='store_const',
+                    const="nquads",
+                    help='serialize as N-Quads')
+parser.add_argument('--trix', '-t', dest='format', action='store_const',
+                    const="trix",
+                    help='serialize as TriX (default)')
+
+args = parser.parse_args()
+
+csv_path = args.csv_path
+out_dir = args.out_dir
 os.makedirs(out_dir, exist_ok=True)
 csv_headers = []
 
@@ -42,14 +62,15 @@ CONTEXT = {
 class Nanopub(object):
     def __init__(self, data, given_id=None):
         """ Create a nanopublication graph """
-        g = self.g = ConjunctiveGraph()
         self.data = data
 
         if not given_id:
             given_id = str(uuid4())
 
-        np = DDC.term("np" + given_id)
-        np_ns = Namespace(np + "#")
+        np = DDC.term("np" + given_id) 
+        np_ns = Namespace(np)
+
+        g = self.g = ConjunctiveGraph('default', URIRef(np_ns.head))
 
         assertion = self.assertion = URIRef(np_ns.assertion)
         provenance = self.provenance = URIRef(np_ns.provenance)
@@ -75,7 +96,7 @@ class Nanopub(object):
         g.add((assertion, PROV.wasAttributedTo, analyst, provenance))
 
         # Assertion (OA)
-        observation = BNode()
+        observation = URIRef(np_ns.observation)
         g.add((observation, RDF.type, OA.Annotation, assertion))
         g.add((observation, OA.annotatedBy, analyst, assertion))
 
@@ -120,12 +141,13 @@ class Nanopub(object):
             value = data[l].strip()
             if value.lower() not in forbidden_values:
                 label = csv_headers[l].strip()
-                self.addAssertionTag(label, value, observation)
+                uri = np_ns+label
+                self.addAssertionTag(label, value, observation, uri)
 
         # OA body for free text comment
         comment = data[csv_headers.index("comment")].strip()
         if comment.lower() not in forbidden_values:
-            body = BNode()
+            body = URIRef(np_ns.comment)
 
             g.add((observation, OA.motivatedBy, OA.commenting, assertion))
 
@@ -137,7 +159,7 @@ class Nanopub(object):
 
         # OA target
         target = URIRef(self.buildEMAurl())
-        g.add((observation, OA.hasTarget, target))
+        g.add((observation, OA.hasTarget, target, assertion))
 
         # NP main graph
 
@@ -146,8 +168,10 @@ class Nanopub(object):
         g.add((np, NP.hasProvenance, provenance))
         g.add((np, NP.hasPublicationInfo, pubinfo))
 
-    def addAssertionTag(self, label, value, observation):
-        tag = BNode()
+        self.g = RdfTransformer.transform(g, np)
+
+    def addAssertionTag(self, label, value, observation, uri):
+        tag = URIRef(uri)
 
         self.g.add((observation, OA.motivatedBy, OA.tagging, self.assertion))
         self.g.add((observation, OA.motivatedBy, OA.identifying,
@@ -223,10 +247,18 @@ class Nanopub(object):
         return self.g.serialize(format='json-ld',
                                 indent=indent, context=CONTEXT)
 
-    def trig(self, indent=2):
-        return self.g.serialize(format='trig')
+    def nquads(self):
+        return self.g.serialize(format='nquads')
 
-with open(csvpath) as csvfile:
+    def trix(self, indent=2):
+        return self.g.serialize(format='trix')
+
+def write_np(s, npid, formt):
+    filename = filename = "np{0}.{1}".format(npid, formt)
+    with open(os.path.join(out_dir, filename), 'wb') as f:
+        f.write(s)
+
+with open(csv_path) as csvfile:
     creader = csv.reader(csvfile)
     for i, analysis in enumerate(creader):
         if i == 0:
@@ -234,9 +266,15 @@ with open(csvpath) as csvfile:
         else:
             npid = analysis[csv_headers.index("id")]
             n = Nanopub(analysis, npid)
-            filename = "np{0}.jsonld".format(npid)
-            with open(os.path.join(out_dir, filename), 'wb') as f:
-                j = n.jsonld()
-                f.write(j)
+            if args.format == "trix":
+                s = n.trix()
+            if args.format == "nquads":
+                s = n.trix()
+            elif args.format == "jsonld":
+                s = n.jsonld()
+            else:
+                s = n.trix()
+
+            write_np(s, npid, args.format)
 
 register('json-ld', Serializer, 'rdflib_jsonld.serializer', 'JsonLDSerializer')
