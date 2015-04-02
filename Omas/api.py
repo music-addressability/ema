@@ -4,7 +4,7 @@ import re
 
 from flask.ext.api import FlaskAPI
 from flask.ext.api import status
-from werkzeug.routing import BaseConverter 
+from werkzeug.routing import BaseConverter
 from werkzeug.routing import ValidationError
 from flask import send_file
 
@@ -31,6 +31,22 @@ app.config['DEFAULT_PARSERS'] = [
 
 
 # CONVERTERS
+class MeasuresConverter(BaseConverter):
+
+    def __init__(self, url_map):
+        super(MeasuresConverter, self).__init__(url_map)
+
+    def to_python(self, value):
+        exp = r'(?:^((all|((start|end|\d+)(-(start|end|\d+))?))+(,|$))+)'
+        match = re.match(exp, value)
+        if not match:
+            raise ValidationError()
+        return value
+
+    def to_url(self, value):
+        return value
+
+
 class StavesConverter(BaseConverter):
 
     def __init__(self, url_map):
@@ -39,7 +55,8 @@ class StavesConverter(BaseConverter):
     def to_python(self, value):
         # Testing the regular expression here because
         # self.regex fails with complex expressions
-        match = re.match(r'(?:((all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?))+(,|$))+)', value)
+        exp = r'(?:^((all|((start|end|\d+)(-(start|end|\d+))?\+?))+(,|$))+)'
+        match = re.match(exp, value)
         if not match:
             raise ValidationError()
         return value
@@ -47,19 +64,6 @@ class StavesConverter(BaseConverter):
     def to_url(self, value):
         return value
 
-class MeasuresConverter(BaseConverter):
-
-    def __init__(self, url_map):
-        super(MeasuresConverter, self).__init__(url_map)
-
-    def to_python(self, value):
-        match = re.match(r'(?:((all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?\+?))+(,|$)))', value)
-        if not match:
-            raise ValidationError()
-        return value
-
-    def to_url(self, value):
-        return value  
 
 class BeatsConverter(BaseConverter):
 
@@ -67,13 +71,15 @@ class BeatsConverter(BaseConverter):
         super(BeatsConverter, self).__init__(url_map)
 
     def to_python(self, value):
-        match = re.match(r'(?:((@(all|((start|end|\d+(\.\d+)?)(-(start|end|\d+(\.\d+)?))?\+?)))+(,|$)))', value)
+        exp = r"""(?:^((@(all|((start|end|\d+(\.\d+)?)
+                  (-(start|end|\d+(\.\d+)?))?\+?)))+(,|$))+)"""
+        match = re.match(exp, value, re.X)
         if not match:
             raise ValidationError()
         return value
 
     def to_url(self, value):
-        return value 
+        return value
 
 app.url_map.converters['staves'] = StavesConverter
 app.url_map.converters['measures'] = MeasuresConverter
@@ -85,9 +91,12 @@ def get_external_mei(meiaddr):
     # Exeunt stage left if something went wrong.
     if r.status_code != requests.codes.ok:
         if r.status_code == 404:
-            raise CannotAccessRemoteMEIException("The MEI File could not be found")
+            msg = "The MEI File could not be found"
+            raise CannotAccessRemoteMEIException(msg)
         else:
-            raise UnknownMEIReadException("An unknown error ocurred. Status code: {0}".format(r.status_code))
+            msg = "An unknown error ocurred. Status code: {0}".format(
+                r.status_code)
+            raise UnknownMEIReadException(msg)
 
     return r.content
 
@@ -96,8 +105,13 @@ def get_external_mei(meiaddr):
 def index():
     return "Welcome to Omas"
 
-@app.route('/<path:meipath>/<staves:staves>/<measures:measures>/<beats:beats>', methods=["GET"])
-@app.route('/<path:meipath>/<staves:staves>/<measures:measures>/<beats:beats>/<completeness>', methods=["GET"])
+
+@app.route(
+    '/<path:meipath>/<measures:measures>/<staves:staves>/<beats:beats>',
+    methods=["GET"])
+@app.route(
+    '/<path:meipath>/<measures:measures>/<staves:staves>/<beats:beats>/<completeness>',
+    methods=["GET"])
 def address(meipath, measures, staves, beats, completeness=None):
     mei_as_text = get_external_mei(meipath)
 
@@ -106,8 +120,17 @@ def address(meipath, measures, staves, beats, completeness=None):
     except CannotReadMEIException as ex:
         return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
+    # test
+    # return meislicer.MeiSlicer(parsed_mei, measures, staves, beats, completeness).beatRange
+
     try:
-        mei_slice = meislicer.MeiSlicer(parsed_mei, measures, staves, beats, completeness).select()
+        mei_slice = meislicer.MeiSlicer(
+            parsed_mei,
+            measures,
+            staves,
+            beats,
+            completeness
+        ).select()
     except BadApiRequest as ex:
         return {"message": ex.message}, status.HTTP_400_BAD_REQUEST
     except UnsupportedEncoding as ex:
