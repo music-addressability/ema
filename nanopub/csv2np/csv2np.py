@@ -7,6 +7,7 @@ import os.path
 import urllib.parse
 import argparse
 import logging
+import time
 from uuid import uuid4
 from datetime import datetime, timedelta
 from rdflib import ConjunctiveGraph, Namespace, URIRef, Literal
@@ -67,7 +68,7 @@ class Nanopub(object):
         if not given_id:
             given_id = str(uuid4())
 
-        np = DDC.term("np" + given_id) 
+        np = DDC.term("np" + given_id)
         np_ns = Namespace(np)
 
         g = self.g = ConjunctiveGraph('default', URIRef(np_ns.head))
@@ -77,8 +78,16 @@ class Nanopub(object):
         pubinfo = self.pubInfo = URIRef(np_ns.pubinfo)
 
         # Pubinfo
-        ema = "Enhanching Music Notation Addressability Project"
-        g.add((np, PROV.wasAttributedTo, Literal(ema), pubinfo))
+        ema = URIRef(np_ns.emaresp)
+        ema_str = Literal("Enhanching Music Notation Addressability Project")
+        g.add((ema, RDF.type, PROV.Agent, pubinfo))
+        g.add((ema, RDF.type, PROV.Organization, pubinfo))
+        g.add((ema, FOAF.name, ema_str, pubinfo))
+        g.add((np, PROV.wasAttributedTo, ema, pubinfo))
+
+        gen_date = time.strftime('%Y-%m-%dT%H:%M:%S-05:00')
+        timestamp = Literal(gen_date, datatype=XSD.dateTime)
+        g.add((np, PROV.generatedAtTime, timestamp, pubinfo))
 
         # Provenance
         date = data[csv_headers.index("timestamp")]
@@ -92,7 +101,11 @@ class Nanopub(object):
         timestamp = Literal(creation_date, datatype=XSD.dateTime)
         g.add((assertion, PROV.generatedAtTime, timestamp, provenance))
 
-        analyst = Literal(data[csv_headers.index("analyst")])
+        analyst = URIRef(np_ns.analyst)
+        analyst_str = Literal(data[csv_headers.index("analyst")])
+        g.add((analyst, RDF.type, PROV.Agent, provenance))
+        g.add((analyst, RDF.type, PROV.Person, provenance))
+        g.add((analyst, FOAF.name, analyst_str, provenance))
         g.add((assertion, PROV.wasAttributedTo, analyst, provenance))
 
         # Assertion (OA)
@@ -252,6 +265,7 @@ class Nanopub(object):
 
     def trix(self, indent=2):
         return self.g.serialize(format='trix')
+
 
 def write_np(s, npid, formt):
     filename = filename = "np{0}.{1}".format(npid, formt)
