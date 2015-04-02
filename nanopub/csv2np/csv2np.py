@@ -171,7 +171,10 @@ class Nanopub(object):
             g.add((observation, OA.hasBody, body, assertion))
 
         # OA target
-        target = URIRef(self.buildEMAurl())
+        target = URIRef(np_ns.target)
+        ema_url = URIRef(self.buildEMAurl())
+        g.add((target, RDF.type, OA.SpecificResource, assertion))
+        g.add((target, OA.hasSource, ema_url, assertion))
         g.add((observation, OA.hasTarget, target, assertion))
 
         # NP main graph
