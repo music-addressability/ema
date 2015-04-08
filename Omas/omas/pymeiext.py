@@ -4,19 +4,21 @@ from pymei import MeiElement
 
 # Extend MeiElement
 
+
 def getChildrenNodes(self):
     """Return all children nodes, including text nodes"""
     nodes = []
     head = self.getValue()
-    if head: 
+    if head:
         nodes.append(head)
     nodes += self.getChildren()
     nodes.append(self.getTail())
     return nodes
 
+
 def getDecendantsTextNodes(self):
     """Return a flattened list of descendant text nodes"""
-    
+
     def _extractTextNode(el):
         nodes = el.getChildrenNodes()
         for node in nodes:
@@ -25,9 +27,10 @@ def getDecendantsTextNodes(self):
             else:
                 _extractTextNode(node)
 
-    text_nodes = []    
+    text_nodes = []
     _extractTextNode(self)
     return text_nodes
+
 
 def moveTo(self, parent):
     """Move this element to new parent, as last child"""
@@ -35,6 +38,7 @@ def moveTo(self, parent):
     parent.addChild(self)
 
     return self
+
 
 def getStaffDefs(self):
     """Return list of current staff definitions for the element's staff"""
@@ -63,7 +67,7 @@ def getStaffDefs(self):
             value = staff.getAttribute("n").getValue()
             sd = _look(self, value)
             if sd:
-                staffDefs.append(sd) 
+                staffDefs.append(sd)
     # Then look for attribute
     elif self.hasAttribute("staff"):
         values = el.getAttribute("staff").getValue().split()
@@ -78,12 +82,13 @@ def getStaffDefs(self):
             value = staff.getAttribute("n").getValue()
             sd = _look(self, value)
             if sd:
-                staffDefs.append(sd) 
+                staffDefs.append(sd)
     # If the element does not belong to a staff, return all closest staff defs
     else:
         self.getClosestStaffDefs()
 
     return staffDefs
+
 
 def getClosestStaffDefs(self):
     """Return all the closest staff definitions from the element"""
@@ -95,7 +100,7 @@ def getClosestStaffDefs(self):
     allEls = doc.getFlattenedTree()
     preceding = allEls[:self.getPositionInDocument()]
 
-    for el in reversed(preceding): # Boost doens't allow extended slicing :'(
+    for el in reversed(preceding):  # Boost doens't allow extended slicing :'(
         if el.getName() == "staffDef":
             if el.hasAttribute("n"):
                 val = el.getAttribute("n").getValue()
