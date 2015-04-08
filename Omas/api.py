@@ -120,17 +120,14 @@ def address(meipath, measures, staves, beats, completeness=None):
     except CannotReadMEIException as ex:
         return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    # test
-    # return meislicer.MeiSlicer(parsed_mei, measures, staves, beats, completeness).beatRange
-
     try:
-        mei_slice = meislicer.MeiSlicer(
+        mei_slice = meislicer.slice(
             parsed_mei,
             measures,
             staves,
             beats,
             completeness
-        ).select()
+        )
     except BadApiRequest as ex:
         return {"message": ex.message}, status.HTTP_400_BAD_REQUEST
     except UnsupportedEncoding as ex:
