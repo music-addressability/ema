@@ -15,19 +15,23 @@ from omas.exceptions import BadApiRequest
 
 
 def read_MEI(meitext):
-    """Get MEI file from its identifier, which can be ark, URN, filename, 
-    or other identifier. Abort if unreachable.
-    """
+    """Parse MEI file from text content using pymei / libmei."""
     try:
         parsed_mei = XmlImport.documentFromText(meitext)
     except ElementNotRegisteredException as ex:
-        raise CannotReadMEIException("The MEI File could not be read with this version of libmei. {0}".format(ex.message))
+        raise CannotReadMEIException(
+            "The MEI File could not be read with this version of libmei. {0}"
+            .format(ex.message))
     except MalformedFileException as ex:
-        raise CannotReadMEIException("The MEI File was malformed and could not be read. {0}".format(ex.message))
+        raise CannotReadMEIException(
+            "The MEI File was malformed and could not be read. {0}"
+            .format(ex.message))
     except NoVersionFoundException as ex:
-        raise CannotReadMEIException("The MEI File could not be read beacause it did not specify its version.")
+        raise CannotReadMEIException(
+            "The MEI File could not be read: MEI version not specified.")
     except:
-        raise CannotReadMEIException("The MEI File could not be read for unknown reasons.")
+        raise CannotReadMEIException(
+            "The MEI File could not be read for unknown reasons.")
 
     return parsed_mei
 
@@ -36,19 +40,19 @@ def write_MEI(mei_to_write):
     tdir = tempfile.mkdtemp()
     fname = "slice.mei"
     filename = os.path.join(tdir, fname)
-    # you can do the same thing here and catch write exceptions, etc.
-    # See: https://github.com/DDMAL/libmei/blob/master/python/src/_libmei_exceptions.cpp#L132
-    # for all the different types of exceptions libmei can raise.
+
     try:
         XmlExport.meiDocumentToFile(mei_to_write, filename)
     except FileWriteFailureException as ex:
-        raise CannotWriteMEIException("The MEI Slice could not be written. {0}".format(ex.message))
+        raise CannotWriteMEIException(
+            "The MEI Slice could not be written. {0}"
+            .format(ex.message))
 
     return filename
 
 
 class MusDocInfo(object):
-    """An object storing information from an MEI file needed for the EMA API."""
+    """An object storing information from an MEI file needed for the EMA API"""
     def __init__(self, doc):
         self.meiDoc = doc
 
@@ -58,7 +62,8 @@ class MusDocInfo(object):
         musicEl = self.meiDoc.getElementsByName("music")
         # Exception
         if len(musicEl) != 1:
-            raise BadApiRequest("MEI document must have one and only one music element")
+            raise BadApiRequest(
+                "MEI document must have one and only one music element")
         else:
             return musicEl[0]
 
@@ -103,11 +108,13 @@ class MusDocInfo(object):
         Return two dictionaries.
         The first containing all changes in staves and the measure
         at which the change happens.
-        The second containing all changes in beats and the measure at which the change
-        happens.
+        The second containing all changes in beats and the measure
+        at which the change happens.
         """
         def _getMeasurePos(idx):
-            return next((i for i, x in enumerate(self.measures) if x.id == idx), None)
+            return next(
+                (i for i, x in enumerate(self.measures) if x.id == idx),
+                None)
 
         def _seekMeasure(elm, pos):
             """ Return the closest following measure element """
@@ -138,15 +145,18 @@ class MusDocInfo(object):
             # get its position in the list of peers based on its id
             # (either from @xml:id or added by pymei)
             # use it to retrieve next following-sibling[1] element
-            sd_pos = next((i for i, x in enumerate(peers) if x.id == sd.getId()), None)
+            sd_pos = next(
+                (i for i, x in enumerate(peers) if x.id == sd.getId()),
+                None)
             following_el = peers[sd_pos + 1]
 
             m_pos = _seekMeasure(following_el, sd_pos+1)
 
             # If at this point a measure hasn't been located, there is
             # something unusual with the data
-            if m_pos == None:
-                raise BadApiRequest("Could not locate measure after new score definition (scoreDef)")
+            if m_pos is None:
+                raise BadApiRequest(
+                    "Could not locate measure after new score definition")
 
             # Process for beat data if the scoreDef defines meter
             count_att = sd.getAttribute("meter.count")
@@ -165,7 +175,8 @@ class MusDocInfo(object):
                         beats[str(m_pos)] = {"count" : int(count.getValue())}
                         beats[str(m_pos)]["unit"] = int(unit.getValue())
                     else:
-                        raise BadApiRequest("Could not locate meter and compute beats")
+                        raise BadApiRequest(
+                            "Could not locate meter and compute beats")
 
             # Process for staff data if this scoreDef defines staves
             if len(sd.getChildrenByName("staffGrp")) > 0:
@@ -174,7 +185,8 @@ class MusDocInfo(object):
                 staffDefs = sd.getDescendantsByName("staffDef")
                 labels = []
                 for staffDef in staffDefs:
-                    # Try to get label in this order: @label, /label, @label, @label.abbr
+                    # Try to get label in this order:
+                    # @label, /label, @label, @label.abbr
                     label = ""
                     label_data = staffDef.getAttribute("label")
 
@@ -189,10 +201,12 @@ class MusDocInfo(object):
                             # filter out blank text nodes
                             label_nodes = [n for n in label_nodes if n.strip()]
                             # normalize space and concatenate
-                            label = " ".join(re.sub(r"\s+", " ", l.strip()) for l in label_nodes)
+                            label = " ".join(re.sub(
+                                r"\s+", " ", l.strip()) for l in label_nodes)
                         else:
                             label_data = staffDef.getAttribute("label.abbr")
-                            if label_data: label = label_data.getValue()
+                            if label_data:
+                                label = label_data.getValue()
 
                     labels.append(label)
 
