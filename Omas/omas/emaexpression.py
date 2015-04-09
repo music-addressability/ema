@@ -225,7 +225,7 @@ class EmaExpression(object):
         return ema_measures
 
 
-class EmaMeasure(object,):
+class EmaMeasure(object):
     """Object representing an EMA measure"""
     def __init__(self, idx, staves=None):
         self.idx = idx
@@ -247,7 +247,7 @@ class EmaStaff(object):
 
 
 class EmaBeatRange(object):
-    """Object representing an EMA staff"""
+    """Object representing an EMA beat range"""
     def __init__(self, range_str, measure, staff):
         self.range_str = range_str
         self.measure = measure
