@@ -128,6 +128,7 @@ def address(meipath, measures, staves, beats, completeness=None):
             beats,
             completeness
         )
+        return mei_slice
     except BadApiRequest as ex:
         return {"message": ex.message}, status.HTTP_400_BAD_REQUEST
     except UnsupportedEncoding as ex:
