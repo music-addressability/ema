@@ -11,7 +11,14 @@ from pymeiext import getClosestStaffDefs, moveTo
 def slice(doc, req_m, req_s, req_b, completeness):
     """ Return a modified MEI doc containing the selected notation
         provided a EMA expression of measures, staves, and beats."""
-    
+
+    # It may be helpful to operate by range at measure and beat level.
+    # For example run the core routines for every measure range as if they were
+    # separate addressing acts. This should simplify processing because first/last
+    # measure operations would make more sense. For example dealing with spanners
+    # and trailing events that need to be removed (not turned into spaces)
+    # would be easier!
+
     # Store useful MEI data
     docInfo = MusDocInfo(doc).get()
     musicEl = doc.getElementsByName("music")[0]
@@ -25,19 +32,32 @@ def slice(doc, req_m, req_s, req_b, completeness):
                             completeness)
     ema_measures = ema_exp.get()
 
+    return ema_exp.getCompiled()
+
     # parse general beats information
     beatsInfo = docInfo["beats"]
     timeChanges = beatsInfo.keys()
     timeChanges.sort(key=int)
 
+    # get all the spanners for total extension of meaure selection
+    # (including gap measures, if present)
+    spanners = getMultiMeasureSpanners(doc,
+                                       ema_measures[0].idx-1,
+                                       ema_measures[-1].idx-1)
+
+    # print spanners.values()
+
+    print ema_measures
+    return doc
+
     # Let's start with measures
     for ema_m in ema_measures:
-        
+
         # Get requested measure
         measure = measures[ema_m.idx-1]
         events = measure.getChildren()
 
-        # determine current measure beat info          
+        # determine current measure beat info
         meter = None
         for change in timeChanges:
             if int(change)+1 <= ema_m.idx:
@@ -83,6 +103,12 @@ def slice(doc, req_m, req_s, req_b, completeness):
 
             # Populate this with selected events
             around_events = []
+            # Create sets of elements marked for selection, removal and cutting
+            # Elements are not removed or cut immediately to make sure that
+            # beat calcualtions are accurate.
+            marked_as_selected = set()
+            marked_for_removal = set()
+            marked_for_cutting = set()
 
             # Now locate the requested beat ranges within the staff
             for ema_beat_range in ema_s.beat_ranges:
@@ -90,6 +116,7 @@ def slice(doc, req_m, req_s, req_b, completeness):
                 # shorten them names
                 tstamp_first = ema_beat_range.tstamp_first
                 tstamp_final = ema_beat_range.tstamp_final
+                co = ema_exp.completenessOptions
 
                 # check that the requested beats actually fit in the meter
                 if tstamp_first > int(meter["count"]) or \
@@ -97,32 +124,38 @@ def slice(doc, req_m, req_s, req_b, completeness):
                     raise BadApiRequest(
                         "Request beat is out of measure bounds")
 
-                # Set a list of elements marked for removal
-                # Elements are not removed or cut immediately to make sure that 
-                # beat calcualtions are accurate.
-                marked_as_selected = []
-                marked_for_cutting = []
-
                 # Find all descendants with att.duration.musical (@dur)
                 for layer in staff.getDescendantsByName("layer"):
                     cur_beat = 0.0
+                    is_first_match = True
                     for el in layer.getDescendants():
                         if el.hasAttribute("dur"):
                             dur = _calculateDur(el, meter)
                             # exclude descendants at and in between tstamps
                             if cur_beat + dur >= tstamp_first:
                                 if cur_beat < tstamp_final:
-                                    marked_as_selected.append(el)
+                                    marked_as_selected.add(el)
+                                    if is_first_match and "cut" in co:
+                                        marked_for_cutting.add(el)
+                                        is_first_match = False
+
+                                    # discard from removal set if it had
+                                    # been placed there from other beat range
+                                    marked_for_removal.discard(el)
 
                                     # Cut the duration of the last element if
                                     # completeness = cut
-                                    if cur_beat + dur > tstamp_final and \
-                                       "cut" in ema_exp.completenessOptions: 
-                                        marked_for_cutting.append(el)
+                                    needs_cut = cur_beat + dur > tstamp_final
+                                    if needs_cut and "cut" in co:
+                                        marked_for_cutting.add(el)
+                            elif el not in marked_as_selected:
+                                marked_for_removal.add(el)
+
                             # continue
                             cur_beat += dur
 
-                # select elements affect staff that occuring within beat range
+                # select elements affecting the staff occurring
+                # within beat range
                 for event in around:
                     if event.hasAttribute("tstamp"):
                         ts = float(event.getAttribute("tstamp").getValue())
@@ -150,8 +183,125 @@ def slice(doc, req_m, req_s, req_b, completeness):
                                 if event not in around_events:
                                     around_events.append(event)
 
-            print around_events
-                
+                # remove and cut here
+                # print "selected", marked_as_selected
+                # print "removed", marked_for_removal
+                # print "cut", marked_for_cutting
+
+            # Replace elements marked for removal with spaces
+            for el in marked_for_removal:
+                parent = el.getParent()
+                # Add space element to replace the one marked for deletion
+                # unless completeness is set to nospace
+                if "nospace" not in ema_exp.completenessOptions:
+                    space = MeiElement("space")
+                    space.addAttribute(el.getAttribute("dur"))
+                    if el.getAttribute("dots"):
+                        space.addAttribute(el.getAttribute("dots"))
+                    elif el.getChildrenByName("dot"):
+                        dots = str(len(el.getChildrenByName("dot")))
+                        space.addAttribute(MeiAttribute("dots", dots))
+                    parent.addChildBefore(el, space)
+                el.getParent().removeChild(el)
+
+            # Need to find a way to remove trailing elements
+            # in last measure. Leaving <space>s for now.
+
+            # INCLUDE SPANNERS
+
+            # Locate events landing on or including this staff
+            # from out of range measures (eg a long slur),
+            # and append to first measure in selection
+
+            # Include spanners from table
+            for events in spanners.values():
+                for event_id in events:
+                    event = self.meiDoc.getElementById(event_id)
+
+                    # Determine staff of event for id changes
+                    staff = 0
+                    staff_nos = self._getSelectedStaffNosFor(event)
+                    if staff_nos:
+                        staff = self.exp.staffRange.index(staff_nos[0])
+
+                    # Truncate event to start at the beginning of the beat range
+                    if event.hasAttribute("startid"):
+                        # Set startid to the first event still on staff,
+                        # at the first available layer
+                        try:
+                            layer = (
+                                staves_by_measure[0]["on"][staff]
+                                .getChildrenByName("layer")
+                            )
+                            first_id = layer[0].getChildren()[0].getId()
+                            event.getAttribute("startid").setValue("#"+first_id)
+                        except IndexError:
+                            msg = """
+                                Unsupported encoding. Omas attempted to adjust the
+                                starting point of a selected multi-measure element
+                                that starts before the selection, but the staff or
+                                layer could not be located.
+                                """
+                            msg = re.sub(r'\s+', ' ', msg.strip())
+                            raise UnsupportedEncoding(msg)
+
+                    if event.hasAttribute("tstamp"):
+                        # Set tstamp to first in beat selection
+                        event.getAttribute("tstamp").setValue(str(tstamp_first))
+
+                    # Truncate to end of range if completeness = cut
+                    if "cut" in self.exp.completenessOptions:
+                        if event.hasAttribute("tstamp2"):
+                            att = event.getAttribute("tstamp2")
+                            t2 = att.getValue()
+                            p = re.compile(r"([1-9]+)(?=m\+)")
+                            multimeasure = p.match(t2)
+                            if multimeasure:
+                                new_val = len(mm) - 1
+                                att.setValue(p.sub(str(new_val), t2))
+                        if event.hasAttribute("endid"):
+                            if events[event_id]["distance"] > 0:
+                                # Set end to the last event on staff
+                                try:
+                                    layer = (
+                                        staves_by_measure[-1]["on"][staff]
+                                        .getChildrenByName("layer")
+                                    )
+                                    last_id = layer[0].getChildren()[-1].getId()
+                                    event.getAttribute("endid").setValue("#"+last_id)
+                                except IndexError:
+                                    msg = """
+                                        Unsupported encoding. Omas attempted to
+                                        adjust the ending point of a selected
+                                        multi-measure element that ends after the
+                                        selection, but the staff or layer could not
+                                        be located.
+                                        """
+                                    msg = re.sub(r'\s+', ' ', msg.strip())
+                                    raise UnsupportedEncoding(msg)
+
+                    # Otherwise adjust tspan2 value to correct distance.
+                    # E.g. given 4 measures with a spanner originating
+                    # in 1 and ending in 4 and a selection of measures 2 and 3,
+                    # change @tspan2 from 3m+X to 2m+X
+                    else:
+                        if event.hasAttribute("tstamp2"):
+                            att = event.getAttribute("tstamp2")
+                            t2 = att.getValue()
+                            p = re.compile(r"([1-9]+)(?=m\+)")
+                            multimeasure = p.match(t2)
+                            if multimeasure:
+                                dis = events[event_id]["distance"]
+                                new_val = int(multimeasure.group(1)) - dis
+                                att.setValue(p.sub(str(new_val), t2))
+
+                    # move element to first measure and add it to selected
+                    # events "around" the staff.
+                    event.moveTo(mm[0])
+                    staves_by_measure[0]["around"].append(event)
+
+
+
 
     # mm = self.measures
     # m_first = mm[0]
@@ -251,8 +401,108 @@ def slice(doc, req_m, req_s, req_b, completeness):
     #     if "signature" in self.exp.completenessOptions:
     #         m_first.getParent().addChildBefore(m_first, scoreDef)
 
-    # return self.meiDoc
+    return doc
 
+
+def getMultiMeasureSpanners(doc, start, end=-1):
+    """Return a dictionary of spanning elements ecompassing,
+       or landing or starting within selected measures"""
+    mm = doc.getElementsByName("music")[0].getDescendantsByName("measure")
+    start_m = mm[start]
+    table = {}
+
+    # Template of table dictionary (for reference):
+    # {
+    #     "_targetMeasureID_" : {
+    #         "_eventID_" : {
+    #             "origin" : "_originMeasureID_",
+    #             "distance" : 0,
+    #             "startid" : "_startID_",
+    #             "endid" : "_endID_",
+    #             "tstamp" : "_beat_",
+    #             "tstamp2" : "_Xm+beat_"
+    #         }
+    #     }
+    # }
+
+    def _calculateDistance(origin):
+        """ Calcualte distance of origin measure from
+            first measure in selection """
+        # Cast MeiElementList to python list
+        list_mm = list(mm)
+        return list_mm.index(start_m) - list_mm.index(origin)
+
+    # Exclude end measure index from request,
+    # unless last measure is requested (creates table for whole file).
+    if end == -1:
+        end = len(mm) + 1
+
+    # Look back through measures and build a table of events
+    # spanning multiple measures via tstamp/tstamp2 or startid/endid pairs.
+    for i, prev_m in enumerate(mm[:end]):
+        m_id = prev_m.getId()
+
+        for el in prev_m.getDescendants():
+
+            # Determine destination based on startid/endid pairs.
+            # If not found, look for tstamp/tstamp2 pairs before moving on.
+
+            if el.hasAttribute("endid"):
+                endid = el.getAttribute("endid").getValue()
+                endid = endid.replace("#", "")
+
+                target_el = doc.getElementById(endid)
+
+                if target_el.hasAncestor("measure"):
+                    # This could be a comparison of objects,
+                    # but comparing ids feels safer.
+                    destination = target_el.getAncestor("measure")
+                    if destination.getId() != prev_m.getId():
+                        # Create table entry
+                        dest_id = destination.getId()
+                        distance = _calculateDistance(prev_m)
+                        el_id = el.getId()
+
+                        if dest_id not in table:
+                            table[dest_id] = {}
+                        table[dest_id][el_id] = {
+                            "origin": m_id,
+                            "distance": distance,
+                            "endid": endid
+                        }
+                        if el.hasAttribute("startid"):
+                            startid = (
+                                el
+                                .getAttribute("startid")
+                                .getValue()
+                                .replace("#", "")
+                            )
+                            table[dest_id][el_id]["startid"] = startid
+            elif el.hasAttribute("tstamp2"):
+                t2 = el.getAttribute("tstamp2").getValue()
+                multiMesSpan = re.match(r"([1-9]+)m\+", t2)
+                if multiMesSpan:
+                    destination = mm[i + int(multiMesSpan.group(1))]
+                    # Create table entry
+                    dest_id = destination.getId()
+                    distance = _calculateDistance(prev_m)
+                    el_id = el.getId()
+
+                    if dest_id not in table:
+                        table[dest_id] = {}
+                    table[dest_id][el_id] = {
+                        "origin": m_id,
+                        "distance": distance,
+                        "tstamp2": t2
+                    }
+                    if el.hasAttribute("tstamp"):
+                        table[dest_id][el_id]["tstamp"] = (
+                            el
+                            .getAttribute("tstamp")
+                            .getValue()
+                        )
+
+    return table
 
 def _calculateDur(element, meter):
     """ Determine the duration of an element given a meter """
