@@ -93,6 +93,17 @@ class EmaExpression(object):
         """ Return a list of compiled simplified EMA expresions """
         return [sel.getCompiled() for sel in self.selections]
 
+    @property
+    def completenessOptions(self):
+        """Return list of completeness options"""
+
+        opts = []
+
+        if self.completeness:
+            opts = self.completeness.split(",")
+
+        return opts
+
     def get(self):
         """ Return a list of EMA mesure range objects.
             They contain other objects modelling staves and beats
@@ -134,7 +145,7 @@ class EmaSingleRangeExpression(object):
 
     @property
     def measureRange(self):
-        """Return list of indexes of requested measures"""  
+        """Return list of indexes of requested measures"""
         self.compiled_measures = self.requested_measures
         return self.requested_measures
 
@@ -226,17 +237,6 @@ class EmaSingleRangeExpression(object):
         self.compiled_beats = ",".join(compiled_staves)
 
         return beats_by_measure
-
-    @property
-    def completenessOptions(self):
-        """Return list of completeness options"""
-
-        opts = []
-
-        if self.completeness:
-            opts = self.completeness.split(",")
-
-        return opts
 
     def _parseNumericRanges(self, rang):
         """Generic method for parsing ranges as specified in the EMA API"""
