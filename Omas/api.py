@@ -121,14 +121,13 @@ def address(meipath, measures, staves, beats, completeness=None):
         return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
     try:
-        mei_slice = meislicer.slice(
+        mei_slice = meislicer.MeiSlicer(
             parsed_mei,
             measures,
             staves,
             beats,
             completeness
-        )
-        return mei_slice
+        ).slice()
     except BadApiRequest as ex:
         return {"message": ex.message}, status.HTTP_400_BAD_REQUEST
     except UnsupportedEncoding as ex:
