@@ -121,25 +121,34 @@ def address(meipath, measures, staves, beats, completeness=None):
         return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
     try:
-        mei_slice = meislicer.MeiSlicer(
+        mei_slicer = meislicer.MeiSlicer(
             parsed_mei,
             measures,
             staves,
             beats,
             completeness
-        ).slice()
+        )
+        mei_slice = mei_slicer.slice()
     except BadApiRequest as ex:
         return {"message": ex.message}, status.HTTP_400_BAD_REQUEST
     except UnsupportedEncoding as ex:
         return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    # this will write it to a temporary directory automatically
-    try:
-        filename = meiinfo.write_MEI(mei_slice)
-    except CannotWriteMEIException as ex:
-        return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
+    if completeness == "compile":
+        return mei_slicer.compiled_exp
+    else:
+        # this will write it to a temporary directory automatically
+        try:
+            filename = meiinfo.write_MEI(mei_slice)
+        except CannotWriteMEIException as ex:
+            return (
+                {"message": ex.message},
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-    return send_file(filename, as_attachment=True, mimetype="application/xml")
+        return send_file(filename,
+                         as_attachment=True,
+                         mimetype="application/xml")
 
 
 @app.route('/<path:meipath>/info.json', methods=['GET'])
