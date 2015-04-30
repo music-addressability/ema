@@ -1,6 +1,7 @@
 from omas.exceptions import BadApiRequest
 import itertools
 
+
 class EmaExpression(object):
     """ A class to parse an EMA expression given EMA information about a
         music document. """
@@ -36,7 +37,7 @@ class EmaExpression(object):
         ranges = []
         for p in mm_ranges:
             if '-' in p:
-                begin, end = map(int, p.split('-', 2))
+                begin, end = map(int, p.split('-', 1))
             else:
                 begin = end = int(p)
             ranges.append([begin, end])
