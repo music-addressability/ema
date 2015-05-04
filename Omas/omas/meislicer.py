@@ -34,12 +34,28 @@ class MeiSlicer(object):
         self.timeChanges = self.beatsInfo.keys()
         self.timeChanges.sort(key=int)
 
+        # Process measure ranges and store boundary measures
+        boundary_mm = []
         for em in self.ema_measures:
+            boundary_mm.append(em.measures[0].idx)
+            boundary_mm.append(em.measures[-1].idx)
             self.processContigRange(em)
 
-        # Recursively remove remaining data in between measure ranges before returning
-        m_first = self.measures[self.ema_measures[0].measures[0].idx-1]
-        m_final = self.measures[self.ema_measures[-1].measures[-1].idx-1]
+        # Recursively remove remaining data in between
+        # measure ranges before returning modified doc
+
+        # First remove measures in between
+        # TODO: remove score/staffDefs in between and other elements...
+        if len(boundary_mm) > 2:
+            all_in_between = set(range(min(boundary_mm), max(boundary_mm)+1))
+            to_remove = all_in_between - set(boundary_mm)
+
+            for r in to_remove:
+                el = self.measures[r-1]
+                el.getParent().removeChild(el)
+
+        m_first = self.measures[boundary_mm[0]-1]
+        m_final = self.measures[boundary_mm[-1]-1]
 
         # List of elements to keep, to be adjusted according to parameters
         keep = ["meiHead"]
@@ -358,7 +374,6 @@ class MeiSlicer(object):
 
                 else:
                     # Remove this staff and its attached events
-                    print staff.getAttribute("n")
                     staff.getParent().removeChild(staff)
 
                     for el in events:
