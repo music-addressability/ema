@@ -93,47 +93,52 @@ class MeiSlicer(object):
                 el2 = el2.getParent()
             return el1
 
+        # TODO! Remove definitions of unselected staves WITHIN RANGE
+
         # Compute closest score definition to start measure
         allEls = self.doc.getFlattenedTree()
         preceding = allEls[:m_first.getPositionInDocument()]
 
-        scoreDef = None
+        first_scoreDef = None
 
         for el in reversed(preceding):
             if el.getName() == "scoreDef":
-                scoreDef = el
-
-        # Remove definitions of unselected staves everywhere
-        # s_nos = self.exp.staffRange
-        # root = self.meiDoc.getRootElement()
-        # for sd in list(root.getDescendantsByName("staffDef")):
-        #     if sd.hasAttribute("n"):
-        #         if not int(sd.getAttribute("n").getValue()) in s_nos:
-        #             sd.getParent().removeChild(sd)
-        #             # Remove parent staffGrp if this is the last staffDef
-        #             sg = sd.getAncestor("staffGrp")
-        #             if sg:
-        #                 if len(sg.getDescendantsByName("staffDef")) <= 1:
-        #                     sg.getParent().removeChild(sg)
-        #                 else:
-        #                     sd.getParent().removeChild(sd)
+                first_scoreDef = el
+                break
 
         # Recursively remove elements before and after selected measures
         _removeBefore(m_first)
         _removeAfter(m_final)
 
-        # Then re-attach computed score definition
-        sec_first = m_first.getAncestor("section")
-        sec_first.getParent().addChildBefore(sec_first, scoreDef)
+        # Compute closest score definition to start measure of each range
+        b_scoreDef = first_scoreDef
+        for bm in boundary_mm[::2]:  # list comprehension get only start mm
+            b_measure = self.measures[bm-1]
+            preceding = allEls[:b_measure.getPositionInDocument()]
+
+            for el in reversed(preceding):
+                if el.getName() == "scoreDef":
+                    try:
+                        s_id = b_scoreDef.getId()
+                        if s_id == el.getId():
+                            # Re-attach computed score definition
+                            sec = b_measure.getAncestor("section")
+                            sec.getParent().addChildBefore(sec, b_scoreDef)
+                        else:
+                            # new scoreDef
+                            b_scoreDef = el
+                    except AttributeError, e:
+                        b_scoreDef = el
+                    break
 
         if "raw" in self.ema_exp.completenessOptions:
-            lca = _findLowestCommonAncestor(mm[0], mm[-1])
+            lca = _findLowestCommonAncestor(m_first, m_final)
             self.doc.setRootElement(lca)
 
             # re-attach computed score definition if required by
             # completeness = signature
             if "signature" in self.ema_exp.completenessOptions:
-                m_first.getParent().addChildBefore(m_first, scoreDef)
+                m_first.getParent().addChildBefore(m_first, first_scoreDef)
 
         return self.doc
 
