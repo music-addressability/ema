@@ -197,7 +197,7 @@ class EmaSingleRangeExpression(object):
 
             # only replace wildcards here once you know the measure context
             info = self.docInfo["beats"]
-            closestDef = str(min(info, key=lambda x: abs(int(x)-int(m))))
+            closestDef = str(min(info, key=lambda x: abs(int(x)-int(m-1))))
 
             end = str(info[closestDef]["count"])
 
