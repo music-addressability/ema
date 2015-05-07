@@ -13,6 +13,7 @@ class MeiSlicer(object):
     """Class for slicing an MEI doc given a split EMA expresion. """
     def __init__(self, doc, req_m, req_s, req_b, completeness=None):
         self.doc = doc
+        self.flat_doc = doc.getFlattenedTree()
         self.docInfo = MusDocInfo(doc).get()
         self.musicEl = doc.getElementsByName("music")[0]
         self.measures = self.musicEl.getDescendantsByName("measure")
@@ -45,7 +46,6 @@ class MeiSlicer(object):
         # measure ranges before returning modified doc
 
         # First remove measures in between
-        # TODO: remove score/staffDefs in between and other elements...
         if len(boundary_mm) > 2:
             all_in_between = set(range(min(boundary_mm), max(boundary_mm)+1))
             to_remove = all_in_between - set(boundary_mm)
@@ -57,7 +57,7 @@ class MeiSlicer(object):
         m_first = self.measures[boundary_mm[0]-1]
         m_final = self.measures[boundary_mm[-1]-1]
 
-        # List of elements to keep, to be adjusted according to parameters
+        # List of elements to keep
         keep = ["meiHead"]
 
         def _removeBefore(curEl):
@@ -96,8 +96,7 @@ class MeiSlicer(object):
         # TODO! Remove definitions of unselected staves WITHIN RANGE
 
         # Compute closest score definition to start measure
-        allEls = self.doc.getFlattenedTree()
-        preceding = allEls[:m_first.getPositionInDocument()]
+        preceding = self.flat_doc[:m_first.getPositionInDocument()]
 
         first_scoreDef = None
 
@@ -114,7 +113,7 @@ class MeiSlicer(object):
         b_scoreDef = first_scoreDef
         for bm in boundary_mm[::2]:  # list comprehension get only start mm
             b_measure = self.measures[bm-1]
-            preceding = allEls[:b_measure.getPositionInDocument()]
+            preceding = self.flat_doc[:b_measure.getPositionInDocument()]
 
             for el in reversed(preceding):
                 if el.getName() == "scoreDef":
@@ -123,7 +122,8 @@ class MeiSlicer(object):
                         if s_id == el.getId():
                             # Re-attach computed score definition
                             sec = b_measure.getAncestor("section")
-                            sec.getParent().addChildBefore(sec, b_scoreDef)
+                            copy = MeiElement(b_scoreDef)
+                            sec.getParent().addChildBefore(sec, copy)
                         else:
                             # new scoreDef
                             b_scoreDef = el
