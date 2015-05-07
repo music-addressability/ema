@@ -46,13 +46,24 @@ class MeiSlicer(object):
         # measure ranges before returning modified doc
 
         # First remove measures in between
-        if len(boundary_mm) > 2:
-            all_in_between = set(range(min(boundary_mm), max(boundary_mm)+1))
-            to_remove = all_in_between - set(boundary_mm)
-
-            for r in to_remove:
-                el = self.measures[r-1]
-                el.getParent().removeChild(el)
+        # TODO: remove score/staffDefs in between and other elements...
+        to_remove = []
+        middle_boundaries = boundary_mm[1:-1]
+        for bm in middle_boundaries[::2]:
+            i = middle_boundaries.index(bm)
+            try:
+                start_m = self.measures[bm-1]
+                start_m_pos = start_m.getPositionInDocument()
+                end_m = self.measures[middle_boundaries[i+1]-1]
+                end_m_pos = end_m.getPositionInDocument()
+                for el in self.flat_doc[start_m_pos+1:end_m_pos]:
+                    if el.hasAncestor("measure"):
+                        if el.getAncestor("measure").getId() != start_m.getId():
+                            to_remove.append(el)
+                    else:
+                        to_remove.append(el)
+            except IndexError:
+                pass
 
         m_first = self.measures[boundary_mm[0]-1]
         m_final = self.measures[boundary_mm[-1]-1]
@@ -127,9 +138,12 @@ class MeiSlicer(object):
                         else:
                             # new scoreDef
                             b_scoreDef = el
-                    except AttributeError, e:
+                    except AttributeError:
                         b_scoreDef = el
                     break
+
+        for el in to_remove:
+            el.getParent().removeChild(el)
 
         if "raw" in self.ema_exp.completenessOptions:
             lca = _findLowestCommonAncestor(m_first, m_final)
