@@ -248,7 +248,7 @@ class MeiSlicer(object):
 
                         # Find all descendants with att.duration.musical (@dur)
                         for layer in staff.getDescendantsByName("layer"):
-                            cur_beat = 0.0
+                            cur_beat = 1.0
                             is_first_match = True
 
                             for el in layer.getDescendants():
@@ -256,8 +256,8 @@ class MeiSlicer(object):
                                 if el.hasAttribute("dur") and not el.hasAttribute("grace"):
                                     dur = self._calculateDur(el, meter)
                                     # exclude descendants at and in between tstamps
-                                    if cur_beat + dur >= tstamp_first:
-                                        if cur_beat < tstamp_final:
+                                    if cur_beat >= tstamp_first:
+                                        if cur_beat + dur <= tstamp_final + 1:
                                             marked_as_selected.add(el)
                                             if is_first_match and "cut" in co:
                                                 marked_for_cutting.add(el)
@@ -265,12 +265,12 @@ class MeiSlicer(object):
 
                                             # discard from removal set if it had
                                             # been placed there from other beat
-                                            # range print marked_as_space
+                                            # range 
                                             marked_as_space.discard(el)
 
                                             # Cut the duration of the last element
                                             # if completeness = cut
-                                            needs_cut = cur_beat+dur > tstamp_final
+                                            needs_cut = cur_beat+dur > tstamp_final+1
                                             if needs_cut and "cut" in co:
                                                 marked_for_cutting.add(el)
                                                 is_first_match = False
