@@ -209,7 +209,7 @@ class MeiSlicer(object):
                     # Get other elements affecting the staff, e.g. slurs
                     around = []
 
-                    for el in events:
+                    for el in list(events):
                         if self._isInStaff(el, s_no):
                             around.append(el)
 
@@ -404,7 +404,7 @@ class MeiSlicer(object):
                     # Remove this staff and its attached events
                     staff.getParent().removeChild(staff)
 
-                    for el in events:
+                    for el in list(events):
                         if self._isInStaff(el, s_no):
                             el.getParent().removeChild(el)
 
