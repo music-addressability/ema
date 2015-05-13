@@ -429,7 +429,7 @@
                             <slur staff="2" startid="#m6_s2_e5" endid="#m6_s2_e6" curvedir="above"/>
                             <slur staff="2" startid="#m6_s2_e7" endid="#m6_s2_e8" curvedir="above"/>
                             <slur staff="2" startid="#m6_s2_e9" endid="#m6_s2_e10" curvedir="above"/>
-                            <slur staff="2" startid="#m6_s2_e1" endid="#m6_s2_e12" curvedir="above"/>
+                            <slur staff="2" startid="#m6_s2_e11" endid="#m6_s2_e12" curvedir="above"/>
                         </measure>
                         
                         <measure n="7" xml:id="m7">
@@ -486,7 +486,7 @@
                             <slur staff="1" startid="#m7_s1_e5" endid="#m7_s1_e6" curvedir="above"/>
                             <slur staff="1" startid="#m7_s1_e7" endid="#m7_s1_e8" curvedir="above"/>
                             <slur staff="1" startid="#m7_s1_e9" endid="#m7_s1_e10" curvedir="above"/>
-                            <slur staff="1" startid="#m7_s1_e1" endid="#m7_s1_e12" curvedir="above"/>
+                            <slur staff="1" startid="#m7_s1_e11" endid="#m7_s1_e12" curvedir="above"/>
                             <dir staff="2" startid="#m7_s2_e5">piano</dir>
                             <trill staff="2" startid="#m7_s2_e6"/>
                             <harm staff="3" place="below" tstamp="1"><stack>6<lb/>4</stack></harm>
@@ -535,7 +535,7 @@
                             <slur staff="3" startid="#m8_s3_e5" endid="#m8_s3_e6" curvedir="above"/>
                             <slur staff="3" startid="#m8_s3_e7" endid="#m8_s3_e8" curvedir="above"/>
                             <slur staff="3" startid="#m8_s3_e9" endid="#m8_s3_e10" curvedir="above"/>
-                            <slur staff="3" startid="#m8_s3_e1" endid="#m8_s3_e12" curvedir="above"/>
+                            <slur staff="3" startid="#m8_s3_e11" endid="#m8_s3_e12" curvedir="above"/>
                             <harm staff="3" place="below" tstamp="1">
                                 <stack>8<lb/>5<lb/>U+266E</stack>
                             </harm>
