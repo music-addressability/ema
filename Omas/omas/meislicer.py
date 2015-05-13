@@ -253,7 +253,7 @@ class MeiSlicer(object):
 
                             for el in layer.getDescendants():
 
-                                if el.hasAttribute("dur"):
+                                if el.hasAttribute("dur") and not el.hasAttribute("grace"):
                                     dur = self._calculateDur(el, meter)
                                     # exclude descendants at and in between tstamps
                                     if cur_beat + dur >= tstamp_first:
@@ -288,6 +288,8 @@ class MeiSlicer(object):
                             if not marked_as_selected.get(event):
                                 if event.hasAttribute("tstamp"):
                                     ts = float(event.getAttribute("tstamp").getValue())
+                                    if ts < 1 and "cut" not in self.ema_exp.completenessOptions:
+                                        ts = 1
                                     ts2_att = None
                                     if event.hasAttribute("tstamp2"):
                                         ts2_att = event.getAttribute("tstamp2")
@@ -318,6 +320,13 @@ class MeiSlicer(object):
                                         .replace("#", "")
                                     )
                                     target = self.doc.getElementById(startid)
+                                    if not target:
+                                        msg = """Unsupported Encoding: attribute
+                                        startid on element {0} does not point to any
+                                        element in the document.""".format(
+                                            event.getName())
+                                        raise UnsupportedEncoding(
+                                            re.sub(r'\s+', ' ', msg.strip()))
                                     # Make sure the target event is in the same measure
                                     event_m = event.getAncestor("measure").getId()
                                     target_m = target.getAncestor("measure").getId()
