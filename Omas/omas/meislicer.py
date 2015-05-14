@@ -14,6 +14,7 @@ class MeiSlicer(object):
     def __init__(self, doc, req_m, req_s, req_b, completeness=None):
         self.doc = doc
         self.flat_doc = doc.getFlattenedTree()
+        self.flat_doc_static = list(doc.getFlattenedTree())
         self.docInfo = MusDocInfo(doc).get()
         self.musicEl = doc.getElementsByName("music")[0]
         self.measures = self.musicEl.getDescendantsByName("measure")
@@ -107,7 +108,7 @@ class MeiSlicer(object):
         # TODO! Remove definitions of unselected staves WITHIN RANGE
 
         # Compute closest score definition to start measure
-        preceding = self.flat_doc[:m_first.getPositionInDocument()]
+        preceding = self.flat_doc_static[:m_first.getPositionInDocument()]
 
         first_scoreDef = None
 
@@ -124,20 +125,18 @@ class MeiSlicer(object):
         b_scoreDef = first_scoreDef
         for bm in boundary_mm[::2]:  # list comprehension get only start mm
             b_measure = self.measures[bm-1]
-            preceding = self.flat_doc[:b_measure.getPositionInDocument()]
+            preceding = self.flat_doc_static[:b_measure.getPositionInDocument()]
 
             for el in reversed(preceding):
                 if el.getName() == "scoreDef":
                     try:
                         s_id = b_scoreDef.getId()
-                        if s_id == el.getId():
-                            # Re-attach computed score definition
-                            sec = b_measure.getAncestor("section")
-                            copy = MeiElement(b_scoreDef)
-                            sec.getParent().addChildBefore(sec, copy)
-                        else:
-                            # new scoreDef
+                        if not s_id == el.getId():
                             b_scoreDef = el
+                        # Re-attach computed score definition
+                        # sec = b_measure.getAncestor("section")
+                        copy = MeiElement(b_scoreDef)
+                        b_measure.getParent().addChildBefore(b_measure, copy)
                     except AttributeError:
                         b_scoreDef = el
                     break
