@@ -327,8 +327,8 @@
                             <staff n="1">
                                 <layer>
                                     <beam>
-                                        <note pname="e" oct="5" dur="8" xml:id="m5_s1_e1"/>
-                                        <note pname="f" oct="5" dur="16"/>
+                                        <note pname="e" oct="5" dur="8"/>
+                                        <note pname="f" oct="5" dur="16" xml:id="m5_s1_e2"/>
                                         <note pname="e" oct="5" dur="16"/>
                                         <note pname="d" oct="5" dur="16"/>
                                         <note pname="e" oct="5" dur="16" xml:id="m5_s1_e5"/>
@@ -717,7 +717,7 @@
                                     </beam>
                                 </layer>
                             </staff>
-                            <slur staff="2" startid="#m5_s2_e3" endid="#m5_s2_e5" curvedir="below"/>
+                            <!--<slur staff="2" startid="#m5_s2_e3" endid="#m5_s2_e5" curvedir="below"/>-->
                             <slur staff="3" startid="#m5_s3_e1" endid="#m5_s3_e6" curvedir="below"/>
                             <trill staff="2" place="below" tstamp="2"/>
                             <harm staff="3" place="below" tstamp="2">6</harm>
@@ -855,7 +855,7 @@
                             <harm staff="3" place="below" tstamp="2">
                                 <stack>6<lb/>5U+266D</stack>
                             </harm>
-                            <slur staff="2" startid="#m10_s2_e5" endid="#m10_s2_e8" curvedir="above"/>
+                            <!--<slur staff="2" startid="#m10_s2_e5" endid="#m10_s2_e8" curvedir="above"/>-->
                         </measure>
                         <measure n="31" xml:id="m31">
                             <staff n="1">
@@ -876,7 +876,7 @@
                                     </beam>
                                 </layer>
                             </staff>
-                            <slur staff="2" startid="#m11_s2_e2" endid="#m11_s2_e4" curvedir="below"/>
+                            <!--<slur staff="2" startid="#m11_s2_e2" endid="#m11_s2_e4" curvedir="below"/>-->
                             <harm staff="3" place="below" tstamp="2" extender="true">6</harm>
                         </measure>
                         <measure n="32" xml:id="m32">
@@ -898,7 +898,7 @@
                                     </beam>
                                 </layer>
                             </staff>
-                            <slur staff="1" startid="#m12_s1_e5" endid="#m12_s1_e8"/>
+                            <!--<slur staff="1" startid="#m12_s1_e5" endid="#m12_s1_e8"/>-->
                             <harm staff="3" place="below" tstamp="1">7</harm>
                             <harm staff="3" place="below" tstamp="1.5">6</harm>
                             <harm staff="3" place="below" tstamp="2">
@@ -951,7 +951,7 @@
                                     </beam>
                                 </layer>
                             </staff>
-                            <slur staff="1" startid="#m14_s1_e2" endid="#m14_s1_e7" curvedir="above"/>
+                            <!--<slur staff="1" startid="#m14_s1_e2" endid="#m14_s1_e7" curvedir="above"/>-->
                             <slur staff="3" startid="#m14_s3_e2" endid="#m14_s3_e6" curvedir="above"/>
                             <harm staff="3" place="below" tstamp="1">6</harm>
                             <harm staff="3" place="below" tstamp="2">
@@ -1000,7 +1000,7 @@
                                     </beam>
                                 </layer>
                             </staff>
-                            <slur staff="2" startid="#m16_s2_e2" endid="#m16_s2_e7" curvedir="below"/>
+                            <!--<slur staff="2" startid="#m16_s2_e2" endid="#m16_s2_e7" curvedir="below"/>-->
                             <slur staff="3" startid="#m16_s3_e3" endid="#m16_s3_e6" curvedir="below"/>
                             <harm staff="3" place="below" tstamp="1">6</harm>
                             <harm staff="3" place="below" tstamp="2">
@@ -1158,8 +1158,8 @@
                                     </beam>
                                 </layer>
                             </staff>
-                            <trill staff="1" startid="#m22_s1_e4"/>
-                            <trill staff="2" startid="#m22_s2_e4"/>
+                            <!--<trill staff="1" startid="#m22_s1_e4"/>-->
+                            <!--<trill staff="2" startid="#m22_s2_e4"/>-->
                             <slur staff="3" startid="#m22_s3_e1" endid="#m22_s3_e6" curvedir="below"/>
                         </measure>
                         <measure n="43" xml:id="m43">
@@ -1181,9 +1181,9 @@
                                     </beam>
                                 </layer>
                             </staff>
-                            <slur staff="1" startid="#m23_s2_e1" endid="#m23_s2_e4" curvedir="below"/>
+                            <!--<slur staff="1" startid="#m23_s2_e1" endid="#m23_s2_e4" curvedir="below"/>-->
                             <slur staff="3" startid="#m23_s3_e1" endid="#m23_s3_e6" curvedir="below"/>
-                            <trill staff="1" startid="#m23_s1_e5"/>
+                            <!--<trill staff="1" startid="#m23_s1_e5"/>-->
                         </measure>
                         <measure n="44" xml:id="m44">
                             <staff n="1">
@@ -1204,8 +1204,8 @@
                                     </beam>
                                 </layer>
                             </staff>
-                            <slur staff="1" startid="#m24_s1_e1" endid="#m24_s1_e4" curvedir="above"/>
-                            <trill staff="2" startid="#m24_s2_e4"/>
+                            <!--<slur staff="1" startid="#m24_s1_e1" endid="#m24_s1_e4" curvedir="above"/>-->
+                            <!--<trill staff="2" startid="#m24_s2_e4"/>-->
                             <slur staff="3" startid="#m24_s3_e6" endid="#m24_s3_e6"/>
                         </measure>
                         
