@@ -39,23 +39,22 @@ class MeiSlicer(object):
         # Process measure ranges and store boundary measures
         boundary_mm = []
         for em in self.ema_measures:
-            boundary_mm.append(em.measures[0].idx)
-            boundary_mm.append(em.measures[-1].idx)
+            boundary_mm.append(em.measures[0])
+            boundary_mm.append(em.measures[-1])
             self.processContigRange(em)
 
         # Recursively remove remaining data in between
         # measure ranges before returning modified doc
 
         # First remove measures in between
-        # TODO: remove score/staffDefs in between and other elements...
         to_remove = []
         middle_boundaries = boundary_mm[1:-1]
         for bm in middle_boundaries[::2]:
             i = middle_boundaries.index(bm)
             try:
-                start_m = self.measures[bm-1]
+                start_m = self.measures[bm.idx-1]
                 start_m_pos = start_m.getPositionInDocument()
-                end_m = self.measures[middle_boundaries[i+1]-1]
+                end_m = self.measures[middle_boundaries[i+1].idx-1]
                 end_m_pos = end_m.getPositionInDocument()
                 for el in self.flat_doc[start_m_pos+1:end_m_pos]:
                     if el.hasAncestor("measure"):
@@ -66,8 +65,8 @@ class MeiSlicer(object):
             except IndexError:
                 pass
 
-        m_first = self.measures[boundary_mm[0]-1]
-        m_final = self.measures[boundary_mm[-1]-1]
+        m_first = self.measures[boundary_mm[0].idx-1]
+        m_final = self.measures[boundary_mm[-1].idx-1]
 
         # List of elements to keep
         keep = ["meiHead"]
@@ -105,6 +104,16 @@ class MeiSlicer(object):
                 el2 = el2.getParent()
             return el1
 
+        def _removeUnusedStaffDefs(scoredef, ema_m):
+            numbers = []
+            for ema_s in ema_m.staves:
+                numbers.append(ema_s.number)
+            for staffd in scoredef.getDescendantsByName("staffDef"):
+                if staffd.hasAttribute("n"):
+                    val = staffd.getAttribute("n").getValue()
+                    if int(val) not in numbers:
+                        staffd.getParent().removeChild(staffd)
+
         # TODO! Remove definitions of unselected staves WITHIN RANGE
 
         # Compute closest score definition to start measure
@@ -124,7 +133,7 @@ class MeiSlicer(object):
         # Compute closest score definition to start measure of each range
         b_scoreDef = first_scoreDef
         for bm in boundary_mm[::2]:  # list comprehension get only start mm
-            b_measure = self.measures[bm-1]
+            b_measure = self.measures[bm.idx-1]
             preceding = self.flat_doc_static[:b_measure.getPositionInDocument()]
 
             for el in reversed(preceding):
@@ -134,9 +143,9 @@ class MeiSlicer(object):
                         if not s_id == el.getId():
                             b_scoreDef = el
                         # Re-attach computed score definition
-                        # sec = b_measure.getAncestor("section")
-                        copy = MeiElement(b_scoreDef)
-                        b_measure.getParent().addChildBefore(b_measure, copy)
+                        sd_copy = MeiElement(b_scoreDef)
+                        _removeUnusedStaffDefs(sd_copy, bm)
+                        b_measure.getParent().addChildBefore(b_measure, sd_copy)
                     except AttributeError:
                         b_scoreDef = el
                     break
