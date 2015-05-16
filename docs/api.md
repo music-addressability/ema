@@ -23,8 +23,8 @@ Name       | Type   | Description
 -----------|--------|------------
 identifier | string | **Required**. The identifier of the requested music notation document. This may be an URL, ark, URN, filename, or other identifier. Special characters must be URI encoded.
 measureRanges | string | **Required**. Comma separated ranges of measures by their index.
-stavesToMeasure | string | **Required**. Staff ranges separated by `+` signs and mapped to measure ranges with commas. 
-beatsToMeasure | string | **Required**. Beat ranges marked by `@` signs. Mapped to staff ranges by `+`, and mapped to measure ranges with commas.
+stavesToMeasures | string | **Required**. Staff ranges separated by `+` signs and mapped to measure ranges with commas. 
+beatsToMeasures | string | **Required**. Beat ranges marked by `@` signs. Mapped to staff ranges by `+`, and mapped to measure ranges with commas.
 completeness | string | **Optional**. Specifies how complete the returned selection should be via a closed set of options.
 
 #### BNF grammar of parameters
@@ -43,9 +43,9 @@ stavesToMeasures ::= {staffRange / ","}
 beat ::= float
 beatRange ::= {"@", beat | startOrEnd | all / "+"} | {"@", beat | start, "-", beat | end / "+"}
 beatstoMeasures ::= {beatRange / ","}
-```
  
 selectionParameters ::= measureRanges, "/", stavesToMeasures, "/", beatstoMeasures 
+```
 
 #### Measures
 
@@ -73,7 +73,7 @@ Different beats can be chosen for every selected staff and selected measure. For
 
 #### Completeness
 
-The `completeness` parameter specifies how complete the returned selection should be. By default, the selection returned by the web service must be valid against the original music document format (e.g. a valid MEI file). Some of the `completeness` values are used to override this behavior. The table below lists the values accepted. 
+The `completeness` parameter specifies how complete the returned selection should be. By default, the selection returned by the web service must be valid against the original music document format (e.g. a valid MEI or MusicXML file). Some of the `completeness` values are used to override this behavior. The table below lists the values accepted. 
 
 Name  | Description
 ------|-------------
