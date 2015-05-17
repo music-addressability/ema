@@ -116,7 +116,7 @@ def address(meipath, measures, staves, beats, completeness=None):
     mei_as_text = get_external_mei(meipath)
 
     try:
-        parsed_mei = meiinfo.read_MEI(mei_as_text)
+        parsed_mei = meiinfo.read_MEI(mei_as_text).getMeiDocument()
     except CannotReadMEIException as ex:
         return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -161,7 +161,7 @@ def information(meipath):
         return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
     try:
-        parsed_mei = meiinfo.read_MEI(mei_as_text)
+        parsed_mei = meiinfo.read_MEI(mei_as_text).getMeiDocument()
     except CannotReadMEIException as ex:
         # return a 500 server error with the exception message
         return {"message": ex.message}, status.HTTP_500_INTERNAL_SERVER_ERROR

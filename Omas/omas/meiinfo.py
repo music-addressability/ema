@@ -3,10 +3,10 @@ import re
 import json
 import tempfile
 
-from pymei import XmlImport
-from pymei import XmlExport
+from pymei import documentFromText
+from pymei import documentToFile
 from pymei.exceptions import ElementNotRegisteredException
-from pymei.exceptions import MalformedFileException
+from pymei.exceptions import FileReadFailureException
 from pymei.exceptions import FileWriteFailureException
 from pymei.exceptions import NoVersionFoundException
 
@@ -17,12 +17,12 @@ from omas.exceptions import BadApiRequest
 def read_MEI(meitext):
     """Parse MEI file from text content using pymei / libmei."""
     try:
-        parsed_mei = XmlImport.documentFromText(meitext)
+        parsed_mei = documentFromText(meitext)
     except ElementNotRegisteredException as ex:
         raise CannotReadMEIException(
             "The MEI File could not be read with this version of libmei. {0}"
             .format(ex.message))
-    except MalformedFileException as ex:
+    except FileReadFailureException as ex:
         raise CannotReadMEIException(
             "The MEI File was malformed and could not be read. {0}"
             .format(ex.message))
@@ -42,7 +42,7 @@ def write_MEI(mei_to_write):
     filename = os.path.join(tdir, fname)
 
     try:
-        XmlExport.meiDocumentToFile(mei_to_write, filename)
+        documentToFile(mei_to_write, filename)
     except FileWriteFailureException as ex:
         raise CannotWriteMEIException(
             "The MEI Slice could not be written. {0}"
