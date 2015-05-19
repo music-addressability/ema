@@ -17,43 +17,8 @@ OmasClient.Utils.showLoader = function (selector) {
   $(selector).html("<img src='../omas/images/load.gif' alt='loading'/>");
 }
 
-// Backcbone models
-
-OmasClient.Info = Backbone.Model.extend({
-  
-  initialize: function(props){
-    this.url = props.url;
-  } 
-
-});
-
-OmasClient.StaffSel = Backbone.Model;
-
-OmasClient.Content = Backbone.Model;
-
-// Backbone views
-
-OmasClient.App = Backbone.View.extend({
-  el: "#main",
-
-  events: {
-    "submit #requestInfo" : "getInfo",
-    "click #addstaves" : "addStaves",
-    "click #resetstaves" : "resetStaves",
-    "submit #sendSelection" : "getSelection"
-  },
-
-  getInfo: function (e) {
-    e.preventDefault();
-    url = $(e.target).find("#meiUrl").val();
-    encodedUrl = encodeURIComponent(url);
-    new OmasClient.InfoView({model: 
-      new OmasClient.Info({url: "http://mith.umd.edu/ema/"+encodedUrl+"/info.json"})
-    });
-  },
-
-  parseMeasureVals: function () {
-    m = $("#measures").val();
+OmasClient.Utils.parseRangeVals = function (range) {
+    m = $("#"+range).val();
     ranges = m.replace(" ", "").split(",")
     mm = []
     _.each(ranges, function(r){
@@ -83,22 +48,68 @@ OmasClient.App = Backbone.View.extend({
         }
       }
     });
-    
-    new OmasClient.StaffSelView({model: 
-      new OmasClient.StaffSel({"measures":mm})
-    }).render();
+    return mm
+  },
+
+// Backcbone models
+
+OmasClient.Info = Backbone.Model.extend({
+  
+  initialize: function(props){
+    this.url = props.url;
+  } 
+
+});
+
+OmasClient.StaffSel = Backbone.Model;
+OmasClient.BeatSel = Backbone.Model;
+
+OmasClient.Content = Backbone.Model;
+
+// Global storage for EMA expression
+OmasClient.EMAexpr = new Backbone.Model;
+
+// Backbone views
+
+OmasClient.App = Backbone.View.extend({
+  el: "#main",
+
+  events: {
+    "submit #requestInfo" : "getInfo",
+    "click #addstaves" : "addStaves",
+    "click #resetstaves" : "resetStaves",
+    "submit #sendSelection" : "getSelection"
+  },
+
+  getInfo: function (e) {
+    e.preventDefault();
+    url = $(e.target).find("#meiUrl").val();
+    encodedUrl = encodeURIComponent(url);
+    new OmasClient.InfoView({model: 
+      new OmasClient.Info({url: "http://mith.umd.edu/ema/"+encodedUrl+"/info.json"})
+    });
   },
 
   addStaves: function (e) {
     e.preventDefault();
     $("#addstaves").hide();
     $("#resetstaves").removeClass("collapse");
-    this.parseMeasureVals();
+    mm = OmasClient.Utils.parseRangeVals("measures");
+    new OmasClient.StaffSelView({model: 
+      new OmasClient.StaffSel({"measures":mm})
+    }).render();
+    // update EMA expr obj
+    OmasClient.EMAexpr.set("measures", mm)
   },
 
   resetStaves: function (e) {
     e.preventDefault();
-    this.parseMeasureVals();
+    mm = OmasClient.Utils.parseRangeVals("measures");
+    new OmasClient.StaffSelView({model: 
+      new OmasClient.StaffSel({"measures":mm})
+    }).render();
+    // update EMA expr obj
+    OmasClient.EMAexpr.set("measures", mm)
   },
 
   getSelection: function (e) {
@@ -169,7 +180,9 @@ OmasClient.StaffSelView = Backbone.View.extend({
   el: "#g-staves",
 
   events: {
-    "click #s_applyall" : "applyAll"
+    "click #s_applyall" : "applyAll",
+    "click #addbeats" : "addBeats",
+    "click #resetbeats" : "resetBeats"
   },
 
   applyAll: function (e) {
@@ -178,6 +191,72 @@ OmasClient.StaffSelView = Backbone.View.extend({
     value = $(target).val();
     _.each(this.model.get("measures"), function(m){
       $("#staves_for_m"+m).val(value);
+    });
+  },
+
+  addBeats: function (e) {
+    e.preventDefault();
+    $("#addbeats").hide();
+    $("#resetbeats").removeClass("collapse");  
+    OmasClient.EMAexpr.set("staves", []);
+    _.each(OmasClient.EMAexpr.get("measures"), function(m){
+      ss = OmasClient.Utils.parseRangeVals("staves_for_m"+m);
+      mm = {"m_idx": m, "staves": ss};
+      OmasClient.EMAexpr.get("staves").push(mm);
+      console.log(OmasClient.EMAexpr.get("staves"));
+    });
+    sel_mod = {"staves_by_measure": OmasClient.EMAexpr.get("staves")};
+    new OmasClient.BeatSelView({"model": 
+      new OmasClient.BeatSel(sel_mod)
+    }).render();
+  },
+
+  resetBeats: function (e) {
+    e.preventDefault();
+    OmasClient.Utils.parseRangeVals("measures");
+    new OmasClient.BeatSelView({model: 
+      new OmasClient.BeatSel({"staves_by_measure": OmasClient.EMAexpr.get("staves")})
+    }).render();
+  },
+
+  render: function () {
+    this.$el.html(this.template(this.model.toJSON()));
+  }
+});
+
+OmasClient.BeatSelView = Backbone.View.extend({
+  template: _.template($('#beat-tpl').html()),
+
+  el: "#g-beats",
+
+  events: {
+    "click #b_applyalls" : "applyAllStaves",
+    "click #b_applyall" : "applyAll",
+  },
+
+  applyAll: function (e) {
+    e.preventDefault();
+    target = $(e.target).data("ref");
+    value = $(target).val();
+    _.each(this.model.get("staves_by_measure"), function(m){
+      $("[id^=beats_for_m"+m.m_idx+"]").val(value);
+    });
+  },
+
+  applyAllStaves: function (e) {
+    e.preventDefault();
+    target = $(e.target).data("ref");
+    value = $(target).val();
+    measure = parseInt(/for_m(\d+)_/.exec(target)[1]);
+    console.log(measure);
+    _.each(this.model.get("staves_by_measure"), function(m){
+      console.log(m.m_idx, measure)
+      if (m.m_idx == measure){
+        console.log("in");
+        _.each(m.staves, function(s){
+          $("#beats_for_m"+measure+"_s"+s).val(value);
+        });
+      }
     });
   },
 

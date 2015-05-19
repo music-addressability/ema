@@ -120,11 +120,7 @@
 					    
 				    </div>
 				    <div class="form-group" id="g-beats">
-					    <label>Beats</label>
-					    <div><small>Separate with commas, make ranges with hyphens, e.g. "1-2,4"</small></div>
-					    <div id="beatlist">
-
-					    </div>
+					    
 				    </div>
 				    <button type="submit" class="btn btn-default">Get selection</button>
 				</form>
@@ -151,12 +147,12 @@
 
 <script type="text/template" id="staff-tpl">
 <label>Staves</label>
-<div><small>Separate with plus sings (+), make ranges with hyphens, e.g. "1-2+4"</small></div>
+<div><small>Separate with commas, make ranges with hyphens, e.g. "1-2,4"</small></div>
 <% _.each(measures, function(m){ %>
 	<div class="row">
 		<div class="col-xs-3">In measure <%=m%>:</div>
 		<div class="col-xs-3">
-			<input type="text" class="form-control" id="staves_for_m<%=m%>" value="all">
+			<input type="text" class="form-control" id="staves_for_m<%=m%>" value="1">
 		</div>
 		<div class="col-xs-6">
 			<a href="#" data-ref="#staves_for_m<%=m%>" id="s_applyall">apply to all measures</a>
@@ -164,20 +160,31 @@
 	</div>
 <% 	});%>
 <div>
-	<a href="#" class="btn btn-default"><i class="glyphicon glyphicon-plus"></i> Add beats</a>
+	<a href="#" class="btn btn-default" id="addbeats"><i class="glyphicon glyphicon-plus"></i> Add beats</a>
+	<a href="#" class="btn btn-default collapse" id="resetbeats"><i class="glyphicon glyphicon-refresh"></i> Reset beats</a>
 </div>
 </script>
 
 <script type="text/template" id="beat-tpl">
-<div class="row">
-	<div class="col-xs-3">In measure <%=measure%>, staff <%=staff%>:</div>
-	<div class="col-xs-3">
-		<input type="text" class="form-control" id="beats_for_m<%=measures%>_s<%=staff%>" value="1">
-	</div>
-	<div class="col-xs-6">
-		<a href="#">apply to all measures</a>
-	</div>
-</div>
+<label>Beats</label>
+<div><small>Separate with commas, make ranges with hyphens, e.g. "1-2,4"</small></div>
+<% _.each(staves_by_measure, function(m){ 
+	_.each(m.staves, function(s){ %>
+		<div class="row">
+			<div class="col-xs-3">In m <%=m.m_idx%>, staff <%=s%>:</div>
+			<div class="col-xs-3">
+				<input type="text" class="form-control" id="beats_for_m<%=m.m_idx%>_s<%=s%>" value="all">
+			</div>
+			<div class="col-xs-6">
+				<div>
+					<a href="#" data-ref="#beats_for_m<%=m.m_idx%>_s<%=s%>" id="b_applyalls">apply to all staves in measure</a>
+				</div>
+				<div>
+					<a href="#" data-ref="#beats_for_m<%=m.m_idx%>_s<%=s%>" id="b_applyall">apply everywhere</a>
+				</div>
+			</div>		
+		</div>
+<% 	}); });%>
 </script>
 
 <script type="text/template" id="info-tpl">
