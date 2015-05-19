@@ -14,7 +14,7 @@ OmasClient.Utils.alert = function (msg, delay) {
 }
 
 OmasClient.Utils.showLoader = function (selector) {
-  $(selector).html("<img src='load.gif' alt='loading'/>");
+  $(selector).html("<img src='../omas/images/load.gif' alt='loading'/>");
 }
 
 // Backcbone models
@@ -27,6 +27,8 @@ OmasClient.Info = Backbone.Model.extend({
 
 });
 
+OmasClient.StaffSel = Backbone.Model;
+
 OmasClient.Content = Backbone.Model;
 
 // Backbone views
@@ -36,6 +38,8 @@ OmasClient.App = Backbone.View.extend({
 
   events: {
     "submit #requestInfo" : "getInfo",
+    "click #addstaves" : "addStaves",
+    "click #resetstaves" : "resetStaves",
     "submit #sendSelection" : "getSelection"
   },
 
@@ -44,8 +48,57 @@ OmasClient.App = Backbone.View.extend({
     url = $(e.target).find("#meiUrl").val();
     encodedUrl = encodeURIComponent(url);
     new OmasClient.InfoView({model: 
-      new OmasClient.Info({url: "http://54.152.53.212/"+encodedUrl+"/info.json"})
+      new OmasClient.Info({url: "http://mith.umd.edu/ema/"+encodedUrl+"/info.json"})
     });
+  },
+
+  parseMeasureVals: function () {
+    m = $("#measures").val();
+    ranges = m.replace(" ", "").split(",")
+    mm = []
+    _.each(ranges, function(r){
+      if (r.indexOf("-") == -1){
+        if (!isNaN(parseInt(r))){
+          mm.push(parseInt(r));
+        }
+        else {
+          // error
+          console.log("problem in singleton");
+        }
+      }
+      else {
+        parts = r.split("-")
+        valid = []
+        _.each(parts, function(p){
+          if (isNaN(parseInt(p))){
+            // error
+            console.log("problem in range");
+          }
+          else {
+            valid.push(parseInt(p))
+          }          
+        });
+        if (valid.length == 2) {
+          mm.push.apply(mm, _.range(valid[0], valid[1]+1))
+        }
+      }
+    });
+    
+    new OmasClient.StaffSelView({model: 
+      new OmasClient.StaffSel({"measures":mm})
+    }).render();
+  },
+
+  addStaves: function (e) {
+    e.preventDefault();
+    $("#addstaves").hide();
+    $("#resetstaves").removeClass("collapse");
+    this.parseMeasureVals();
+  },
+
+  resetStaves: function (e) {
+    e.preventDefault();
+    this.parseMeasureVals();
   },
 
   getSelection: function (e) {
@@ -58,35 +111,37 @@ OmasClient.App = Backbone.View.extend({
       $("#dataTabs a:last").tab("show");
       OmasClient.Utils.showLoader("#mei");
 
-      var startM = $(e.target).find("#startM").val(),
-          endM = $(e.target).find("#endM").val(),
-          staves = $(e.target).find("#staves").val(),
-          startBeat = $(e.target).find("#startB").val(),
-          endBeat = $(e.target).find("#endB").val(),
-          opt_raw = $(e.target).find("#opt_raw").is(":checked"),
-          opt_signature = $(e.target).find("#opt_signature").is(":checked"),
-          opt_nospace = $(e.target).find("#opt_nospace").is(":checked"),
-          opt_cut = $(e.target).find("#opt_cut").is(":checked");
+      // var startM = $(e.target).find("#startM").val(),
+      //     endM = $(e.target).find("#endM").val(),
+      //     staves = $(e.target).find("#staves").val(),
+      //     startBeat = $(e.target).find("#startB").val(),
+      //     endBeat = $(e.target).find("#endB").val(),
+      //     opt_raw = $(e.target).find("#opt_raw").is(":checked"),
+      //     opt_signature = $(e.target).find("#opt_signature").is(":checked"),
+      //     opt_nospace = $(e.target).find("#opt_nospace").is(":checked"),
+      //     opt_cut = $(e.target).find("#opt_cut").is(":checked");
 
-      var options = []
-      if (opt_raw) {options.push("raw")}
-      if (opt_signature) {options.push("signature")}
-      if (opt_nospace) {options.push("nospace")}
-      if (opt_cut) {options.push("cut")}
-      var options_str = options.join();
+      // var options = []
+      // if (opt_raw) {options.push("raw")}
+      // if (opt_signature) {options.push("signature")}
+      // if (opt_nospace) {options.push("nospace")}
+      // if (opt_cut) {options.push("cut")}
+      // var options_str = options.join();
 
-      encodedUrl = encodeURIComponent(url);
-      reqUrl = "http://ema.mith.org/"
-             + encodedUrl + "/"
-             + startM + "-"
-             + endM + "/"
-             + staves + "/"
-             + startBeat + "-"
-             + endBeat;
+      // encodedUrl = encodeURIComponent(url);
+      // reqUrl = "http://mith.umd.edu/ema/"
+      //        + encodedUrl + "/"
+      //        + startM + "-"
+      //        + endM + "/"
+      //        + staves + "/"
+      //        + startBeat + "-"
+      //        + endBeat;
 
-      if (options_str) {
-        reqUrl += "/" + options_str;
-      }
+      reqUrl = "http://localhost:5000/http%3A%2F%2Fmusic-encoding.org%2FsampleCollection%2Fencodings%2Fattribute_syl.xml/1/1/@1"
+
+      // if (options_str) {
+      //   reqUrl += "/" + options_str;
+      // }
 
       $.get(reqUrl, function (data) {
         doc = (new XMLSerializer()).serializeToString(data);
@@ -106,6 +161,29 @@ OmasClient.App = Backbone.View.extend({
     }
   }
   
+});
+
+OmasClient.StaffSelView = Backbone.View.extend({
+  template: _.template($('#staff-tpl').html()),
+
+  el: "#g-staves",
+
+  events: {
+    "click #s_applyall" : "applyAll"
+  },
+
+  applyAll: function (e) {
+    e.preventDefault();
+    target = $(e.target).data("ref");
+    value = $(target).val();
+    _.each(this.model.get("measures"), function(m){
+      $("#staves_for_m"+m).val(value);
+    });
+  },
+
+  render: function () {
+    this.$el.html(this.template(this.model.toJSON()));
+  }
 });
 
 OmasClient.InfoView = Backbone.View.extend({
