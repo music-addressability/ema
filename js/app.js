@@ -18,8 +18,9 @@ OmasClient.Utils.showLoader = function (selector) {
 }
 
 OmasClient.Utils.parseRangeVals = function (range) {
-    m = $("#"+range).val();
-    ranges = m.replace(" ", "").split(",")
+    field_el = $("#"+range);
+    m = field_el.val();
+    ranges = m.replace(" ", "").split(",");
     mm = []
     _.each(ranges, function(r){
       if (r.indexOf("-") == -1){
@@ -28,6 +29,10 @@ OmasClient.Utils.parseRangeVals = function (range) {
         }
         else {
           // error
+          field_el.css("background-color", "#FA9191");
+          setTimeout(function(){
+            field_el.css('backgroundColor','white'); 
+          }, 500);
           console.log("problem in singleton");
         }
       }
@@ -37,6 +42,10 @@ OmasClient.Utils.parseRangeVals = function (range) {
         _.each(parts, function(p){
           if (isNaN(parseInt(p))){
             // error
+            field_el.css("background-color", "#FA9191");
+            setTimeout(function(){
+              field_el.css('backgroundColor','white'); 
+            }, 500);
             console.log("problem in range");
           }
           else {
@@ -77,8 +86,7 @@ OmasClient.App = Backbone.View.extend({
   events: {
     "submit #requestInfo" : "getInfo",
     "click #addstaves" : "addStaves",
-    "click #resetstaves" : "resetStaves",
-    "submit #sendSelection" : "getSelection"
+    "click #resetstaves" : "resetStaves"
   },
 
   getInfo: function (e) {
@@ -110,66 +118,6 @@ OmasClient.App = Backbone.View.extend({
     }).render();
     // update EMA expr obj
     OmasClient.EMAexpr.set("measures", mm)
-  },
-
-  getSelection: function (e) {
-    e.preventDefault();    
-    url = $("#meiUrl").val();
-    if (url == '' || !url) {
-      OmasClient.Utils.alert('"Enter a URL "in MEI location"', 2000);
-    }
-    else {
-      $("#dataTabs a:last").tab("show");
-      OmasClient.Utils.showLoader("#mei");
-
-      // var startM = $(e.target).find("#startM").val(),
-      //     endM = $(e.target).find("#endM").val(),
-      //     staves = $(e.target).find("#staves").val(),
-      //     startBeat = $(e.target).find("#startB").val(),
-      //     endBeat = $(e.target).find("#endB").val(),
-      //     opt_raw = $(e.target).find("#opt_raw").is(":checked"),
-      //     opt_signature = $(e.target).find("#opt_signature").is(":checked"),
-      //     opt_nospace = $(e.target).find("#opt_nospace").is(":checked"),
-      //     opt_cut = $(e.target).find("#opt_cut").is(":checked");
-
-      // var options = []
-      // if (opt_raw) {options.push("raw")}
-      // if (opt_signature) {options.push("signature")}
-      // if (opt_nospace) {options.push("nospace")}
-      // if (opt_cut) {options.push("cut")}
-      // var options_str = options.join();
-
-      // encodedUrl = encodeURIComponent(url);
-      // reqUrl = "http://mith.umd.edu/ema/"
-      //        + encodedUrl + "/"
-      //        + startM + "-"
-      //        + endM + "/"
-      //        + staves + "/"
-      //        + startBeat + "-"
-      //        + endBeat;
-
-      reqUrl = "http://localhost:5000/http%3A%2F%2Fmusic-encoding.org%2FsampleCollection%2Fencodings%2Fattribute_syl.xml/1/1/@1"
-
-      // if (options_str) {
-      //   reqUrl += "/" + options_str;
-      // }
-
-      $.get(reqUrl, function (data) {
-        doc = (new XMLSerializer()).serializeToString(data);
-        doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        new OmasClient.ContentView({model : 
-          new OmasClient.Content({reqUrl: reqUrl, lang: "markup", data: doc})
-        }).render();
-        Prism.highlightAll();    
-      }).fail( function (resp) {
-        data = JSON.stringify(resp.responseJSON, undefined, 2);
-        // new OmasClient.InfoView(
-        //   {model : new OmasClient.Content({"reqUrl": reqUrl, "lang": "json", "data":data})}
-        // ).render();
-        Prism.highlightAll();
-        pre.after(download);
-      });
-    }
   }
   
 });
@@ -182,7 +130,7 @@ OmasClient.StaffSelView = Backbone.View.extend({
   events: {
     "click #s_applyall" : "applyAll",
     "click #addbeats" : "addBeats",
-    "click #resetbeats" : "resetBeats"
+    "click #resetbeats" : "resetBeats"    
   },
 
   applyAll: function (e) {
@@ -203,7 +151,6 @@ OmasClient.StaffSelView = Backbone.View.extend({
       ss = OmasClient.Utils.parseRangeVals("staves_for_m"+m);
       mm = {"m_idx": m, "staves": ss};
       OmasClient.EMAexpr.get("staves").push(mm);
-      console.log(OmasClient.EMAexpr.get("staves"));
     });
     sel_mod = {"staves_by_measure": OmasClient.EMAexpr.get("staves")};
     new OmasClient.BeatSelView({"model": 
@@ -213,9 +160,15 @@ OmasClient.StaffSelView = Backbone.View.extend({
 
   resetBeats: function (e) {
     e.preventDefault();
-    OmasClient.Utils.parseRangeVals("measures");
-    new OmasClient.BeatSelView({model: 
-      new OmasClient.BeatSel({"staves_by_measure": OmasClient.EMAexpr.get("staves")})
+    OmasClient.EMAexpr.set("staves", []);
+    _.each(OmasClient.EMAexpr.get("measures"), function(m){
+      ss = OmasClient.Utils.parseRangeVals("staves_for_m"+m);
+      mm = {"m_idx": m, "staves": ss};
+      OmasClient.EMAexpr.get("staves").push(mm);
+    });
+    sel_mod = {"staves_by_measure": OmasClient.EMAexpr.get("staves")};
+    new OmasClient.BeatSelView({"model": 
+      new OmasClient.BeatSel(sel_mod)
     }).render();
   },
 
@@ -232,6 +185,7 @@ OmasClient.BeatSelView = Backbone.View.extend({
   events: {
     "click #b_applyalls" : "applyAllStaves",
     "click #b_applyall" : "applyAll",
+    "click #getselection" : "getSelection"
   },
 
   applyAll: function (e) {
@@ -248,16 +202,76 @@ OmasClient.BeatSelView = Backbone.View.extend({
     target = $(e.target).data("ref");
     value = $(target).val();
     measure = parseInt(/for_m(\d+)_/.exec(target)[1]);
-    console.log(measure);
     _.each(this.model.get("staves_by_measure"), function(m){
-      console.log(m.m_idx, measure)
       if (m.m_idx == measure){
-        console.log("in");
         _.each(m.staves, function(s){
           $("#beats_for_m"+measure+"_s"+s).val(value);
         });
       }
     });
+  },
+
+  getSelection: function (e) {
+    e.preventDefault();
+    OmasClient.EMAexpr.set("beats", []);
+    _.each(OmasClient.EMAexpr.get("staves"), function(measure){
+      m_obj = {"m_idx": measure.m_idx, "staves": []}
+      _.each(measure.staves, function(staff){
+        b = $("#beats_for_m"+measure.m_idx+"_s"+staff).val();
+        m_obj["staves"].push({"s_idx": staff, "beats": b});
+      });
+      OmasClient.EMAexpr.get("beats").push(m_obj);
+    });
+    url = $("#meiUrl").val();
+    if (url == '' || !url) {
+      OmasClient.Utils.alert('"Enter a URL "in MEI location"', 2000);
+    }
+    else {
+      $("#dataTabs a:last").tab("show");
+      OmasClient.Utils.showLoader("#mei");
+
+      measureSel = "";
+      staffSel = "";
+      beatSel = "";
+      _.each(OmasClient.EMAexpr.get("beats"), function(measure, i_m) {
+        measureSel += measure.m_idx;
+        _.each(measure.staves, function(staff, i_s){
+          sidx = String(staff.s_idx);
+          staffSel += sidx.replace(",","+");
+          beatSel += "@"+staff.beats.replace(",","@");
+          if (i_s+1 < measure.staves.length){
+            staffSel += "+"
+            beatSel += "+";
+          }
+        });
+        if (i_m+1 < OmasClient.EMAexpr.get("beats").length){
+          measureSel += ",";
+          staffSel += ","
+          beatSel += ",";
+        }
+      });
+
+      encodedUrl = encodeURIComponent(url);
+      reqUrl = "http://mith.umd.edu/ema/"
+             + encodedUrl + "/"
+             + measureSel + "/"
+             + staffSel + "/"
+             + beatSel
+
+      $.get(reqUrl, function (data) {
+        doc = (new XMLSerializer()).serializeToString(data);
+        doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        new OmasClient.ContentView({model : 
+          new OmasClient.Content({reqUrl: reqUrl, lang: "markup", data: doc})
+        }).render();
+        Prism.highlightAll();    
+      }).fail( function (resp) {
+        data = JSON.stringify(resp.responseJSON, undefined, 2);
+        Prism.highlightAll();
+        // pre.after(download);
+      });
+
+    }
   },
 
   render: function () {
