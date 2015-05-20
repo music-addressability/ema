@@ -460,7 +460,7 @@
                                     <beam>
                                         <note pname="e" oct="5" dur="16" xml:id="m7_s2_e1"/>
                                         <note pname="b" oct="4" accid="n" dur="16" xml:id="m7_s2_e2"/>
-                                        <note pname="c" oct="8" dur="8" artic="stacc"/>
+                                        <note pname="c" oct="5" dur="8" artic="stacc"/>
                                     </beam>
                                     <rest dur="8"/>
                                     <note pname="f" oct="4" accid="s" dur="8" xml:id="m7_s2_e5"/>
@@ -524,10 +524,10 @@
                                         <note pname="g" oct="3" dur="16" xml:id="m8_s3_e8"/>
                                     </beam>
                                     <beam>
-                                        <note pname="g" oct="5" dur="16" xml:id="m8_s3_e9"/>
-                                        <note pname="f" oct="5" dur="16" xml:id="m8_s3_e10"/>
-                                        <note pname="f" oct="5" dur="16" xml:id="m8_s3_e11"/>
-                                        <note pname="e" oct="4" dur="16" accid="n" xml:id="m8_s3_e12"/>
+                                        <note pname="g" oct="3" dur="16" xml:id="m8_s3_e9"/>
+                                        <note pname="f" oct="3" dur="16" xml:id="m8_s3_e10"/>
+                                        <note pname="f" oct="3" dur="16" xml:id="m8_s3_e11"/>
+                                        <note pname="e" oct="3" dur="16" accid="n" xml:id="m8_s3_e12"/>
                                     </beam>
                                 </layer>
                             </staff>
