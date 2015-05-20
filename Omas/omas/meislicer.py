@@ -104,10 +104,15 @@ class MeiSlicer(object):
                 el2 = el2.getParent()
             return el1
 
-        def _removeUnusedStaffDefs(scoredef, ema_m):
-            numbers = []
-            for ema_s in ema_m.staves:
-                numbers.append(ema_s.number)
+        def _removeUnusedStaffDefs(scoredef, start_ema_m):
+            numbers = set()
+            for em in self.ema_measures:
+                if start_ema_m == em.measures[0]:
+                    for m in em.measures:
+                        for ema_s in m.staves:
+                            numbers.add(ema_s.number)
+                    break
+
             for staffd in scoredef.getDescendantsByName("staffDef"):
                 if staffd.hasAttribute("n"):
                     val = staffd.getAttribute("n").getValue()
@@ -132,7 +137,7 @@ class MeiSlicer(object):
 
         # Compute closest score definition to start measure of each range
         b_scoreDef = first_scoreDef
-        for bm in boundary_mm[::2]:  # list comprehension get only start mm
+        for i, bm in enumerate(boundary_mm[::2]):  # list comprehension get only start mm
             b_measure = self.measures[bm.idx-1]
             preceding = self.flat_doc_static[:b_measure.getPositionInDocument()]
 
