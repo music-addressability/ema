@@ -8,6 +8,7 @@
    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/0.0.1/prism.min.css">
+   <link rel="stylesheet" href="../css/style.css">
    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
@@ -19,65 +20,6 @@
   <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
   <![endif]-->
 
-  <style>
-	pre {overflow: auto; word-wrap: normal;white-space: pre; max-height: 200px;}
-	.bs-callout {
-    padding: 20px;
-    margin: 20px 0;
-    border: 1px solid #eee;
-    border-left-width: 5px;
-    border-radius: 3px;
-	}
-	.bs-callout h4 {
-	    margin-top: 0;
-	    margin-bottom: 5px;
-	}
-	.bs-callout p:last-child {
-	    margin-bottom: 0;
-	}
-	.bs-callout code {
-	    border-radius: 3px;
-	}
-	.bs-callout+.bs-callout {
-	    margin-top: -5px;
-	}
-	.bs-callout-default {
-	    border-left-color: #777;
-	}
-	.bs-callout-default h4 {
-	    color: #777;
-	}
-	.bs-callout-primary {
-	    border-left-color: #428bca;
-	}
-	.bs-callout-primary h4 {
-	    color: #428bca;
-	}
-	.bs-callout-success {
-	    border-left-color: #5cb85c;
-	}
-	.bs-callout-success h4 {
-	    color: #5cb85c;
-	}
-	.bs-callout-danger {
-	    border-left-color: #d9534f;
-	}
-	.bs-callout-danger h4 {
-	    color: #d9534f;
-	}
-	.bs-callout-warning {
-	    border-left-color: #f0ad4e;
-	}
-	.bs-callout-warning h4 {
-	    color: #f0ad4e;
-	}
-	.bs-callout-info {
-	    border-left-color: #5bc0de;
-	}
-	.bs-callout-info h4 {
-	    color: #5bc0de;
-	}
-  </style>
 
 </head>
 
@@ -103,6 +45,7 @@
 				    <input type="url" class="form-control" id="meiUrl" value="http://music-encoding.org/sampleCollection/encodings/attribute_syl.xml">
 				  </div>
 				  <button type="submit" class="btn btn-default">Request info</button>
+				  <a href="#" class="btn btn-default" id="renderAllV"><i class="glyphicon glyphicon-music"></i> Preview MEI in Verovio</a>
 				</form>
 				<form id="sendSelection" class="well well-sm">
 					<div class="form-group" id="g-measure">
@@ -261,7 +204,7 @@
 	</div>
 	<pre><code class="language-<%=lang%>"><%= data %></code></pre>
 	<a href="#" class="btn btn-default" id="download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
-	<!--<a href="verovio.html" class="btn btn-default" id="renderV"><i class="glyphicon glyphicon-music"></i> Render with Verovio</a>-->
+	<a href="verovio.html" class="btn btn-default" id="renderV"><i class="glyphicon glyphicon-music"></i> Render with Verovio</a>
 	<!--<a href="#" class="btn btn-default" id="renderM2VF"><i class="glyphicon glyphicon-music"></i> Render with MEI2VF</a>-->
 </script>
 
