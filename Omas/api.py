@@ -71,7 +71,7 @@ class BeatsConverter(BaseConverter):
         super(BeatsConverter, self).__init__(url_map)
 
     def to_python(self, value):
-        exp = r"""(?:^((@(all|((start|end|\d+(\.\d+)?)
+        exp = r"""(?:^((@(all\+?|((start|end|\d+(\.\d+)?)
                   (-(start|end|\d+(\.\d+)?))?\+?)))+(,|$))+)"""
         match = re.match(exp, value, re.X)
         if not match:
