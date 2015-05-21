@@ -52,16 +52,23 @@ else {
   </div><p><a href="/omas">Make another selection</a></p>';
   $("#info").append(urlInfo);
   var vrvToolkit = new verovio.toolkit();
+  scale = 50;
   options = JSON.stringify({
-    pageWidth: $("body").width(),
+    pageWidth: $("#score").width() * 100 / scale,
     ignoreLayout: 1,
-    border: 100,
-    scale: 50
+    adjustPageHeight: 1,
+    border: 50,
+    scale: scale
   });
   vrvToolkit.setOptions(options);
-  var svg = vrvToolkit.renderData( mei + "\n", "" );
-  $("#score").html(svg);
+  vrvToolkit.loadData( mei + "\n", "" );
+  _.each(_.range(1, vrvToolkit.getPageCount()+1), function(page){
+    svg = vrvToolkit.renderPage(page);
+    $("#score").append(svg);
+  });
+
 }
+
 </script>
 
 </body>
