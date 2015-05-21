@@ -89,6 +89,7 @@ OmasClient.App = Backbone.View.extend({
 
   events: {
     "submit #requestInfo" : "getInfo",
+    "click #renderAllV" : "renderVerovio",
     "click #addstaves" : "addStaves",
     "click #resetstaves" : "resetStaves"
   },
@@ -100,6 +101,25 @@ OmasClient.App = Backbone.View.extend({
     new OmasClient.InfoView({model: 
       new OmasClient.Info({url: "http://mith.umd.edu/ema/"+encodedUrl+"/info.json"})
     });
+  },
+
+  renderVerovio: function (e) {
+    e.preventDefault();
+    url = $("#meiUrl").val();
+    // Create a sessionStorage object for storing URL
+    sessionStorage.setItem('URL', url);  
+
+    encodedUrl = encodeURIComponent(url);
+    reqUrl = "http://mith.umd.edu/ema/"
+             + encodedUrl + "/all/all/@all"
+
+    $.get(reqUrl, function (data) {
+      doc = (new XMLSerializer()).serializeToString(data);
+      // Create a sessionStorage object for rendering and other operations
+      sessionStorage.setItem('MEI', doc); 
+      window.location.href = 'verovio.html';
+    });
+    
   },
 
   addStaves: function (e) {
@@ -262,6 +282,9 @@ OmasClient.BeatSelView = Backbone.View.extend({
              + staffSel + "/"
              + beatSel
 
+      // Create a sessionStorage object for storing URL
+      sessionStorage.setItem('URL', reqUrl);  
+
       $.get(reqUrl, function (data) {
         doc = (new XMLSerializer()).serializeToString(data);
         esc_doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -323,7 +346,6 @@ OmasClient.ContentView = Backbone.View.extend({
     url = window.URL.createObjectURL(b)
     d = this.$el.find("#download");
     d.attr("href", url).attr("download", "mei-slice.xml");
-
   }
 
 });
