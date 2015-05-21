@@ -1,5 +1,9 @@
 // Simple backbone app for Omas Client demo
 
+window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder ||
+                     window.MozBlobBuilder || window.MSBlobBuilder;
+window.URL = window.URL || window.webkitURL;
+
 this.OmasClient = {};
 
 OmasClient.Utils = {};
@@ -260,15 +264,16 @@ OmasClient.BeatSelView = Backbone.View.extend({
 
       $.get(reqUrl, function (data) {
         doc = (new XMLSerializer()).serializeToString(data);
-        doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        esc_doc = doc.replace(/</g, "&lt;").replace(/>/g, "&gt;");
         new OmasClient.ContentView({model : 
-          new OmasClient.Content({reqUrl: reqUrl, lang: "markup", data: doc})
+          new OmasClient.Content({reqUrl: reqUrl, lang: "markup", data: esc_doc})
         }).render();
-        Prism.highlightAll();    
+        Prism.highlightAll();
+        // Create a sessionStorage object for rendering and other operations
+        sessionStorage.setItem('MEI', doc);  
       }).fail( function (resp) {
         data = JSON.stringify(resp.responseJSON, undefined, 2);
         Prism.highlightAll();
-        // pre.after(download);
       });
 
     }
@@ -313,6 +318,12 @@ OmasClient.ContentView = Backbone.View.extend({
   render: function () { 
     // Render summary view
     this.$el.html(this.template(this.model.toJSON()));
+    mei = sessionStorage.getItem("MEI");
+    var b = new Blob([mei]);
+    url = window.URL.createObjectURL(b)
+    d = this.$el.find("#download");
+    d.attr("href", url).attr("download", "mei-slice.xml");
+
   }
 
 });
