@@ -270,7 +270,7 @@ class MeiSlicer(object):
                                     dur = self._calculateDur(el, meter)
                                     # exclude descendants at and in between tstamps
                                     if cur_beat >= tstamp_first:
-                                        if cur_beat + dur <= tstamp_final + 1:
+                                        if cur_beat <= tstamp_final:
                                             marked_as_selected.add(el)
                                             if is_first_match and "cut" in co:
                                                 marked_for_cutting.add(el)
@@ -278,7 +278,7 @@ class MeiSlicer(object):
 
                                             # discard from removal set if it had
                                             # been placed there from other beat
-                                            # range 
+                                            # range
                                             marked_as_space.discard(el)
 
                                             # Cut the duration of the last element
@@ -614,8 +614,13 @@ class MeiSlicer(object):
     def _calculateDur(self, element, meter):
         """ Determine the duration of an element given a meter """
         # TODO: beware of @duration.default - though not very common
-        duration = int(element.getAttribute("dur").getValue())
-        relative_dur = float(int(meter["unit"]) / float(duration))
+        dur_val = element.getAttribute("dur").getValue()
+        if dur_val == "breve":
+            dur_val = "0.5"
+        elif dur_val == "long":
+            dur_val = "0.25"
+        duration = float(dur_val)
+        relative_dur = float(int(meter["unit"]) / duration)
 
         dots = 0
         if element.getAttribute("dots"):
@@ -626,7 +631,7 @@ class MeiSlicer(object):
         dot_dur = duration
         for d in range(1, int(dots)+1):
             dot_dur = dot_dur * 2
-            relative_dur += float(int(meter["unit"]) / float(dot_dur))
+            relative_dur += float(int(meter["unit"]) / dot_dur)
 
         return relative_dur
 
