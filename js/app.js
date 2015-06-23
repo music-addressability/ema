@@ -94,17 +94,6 @@ OmasClient.App = Backbone.View.extend({
     "click #resetstaves" : "resetStaves"
   },
 
-  initialize: function() {
-    var url_sesh = sessionStorage.getItem('URL');
-    var url;
-    if (url_sesh === undefined || url_sesh == null){
-      url = "http://go.umd.edu/bachtrio"
-    } else {
-      url = url_sesh;
-    }
-    $("#meiUrl").val(url);
-  },
-
   getInfo: function (e) {
     e.preventDefault();
     url = $(e.target).find("#meiUrl").val();
