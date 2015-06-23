@@ -282,7 +282,7 @@
                                         <note pname="e" oct="5" dur="16" accid="f" xml:id="m4_s1_e2"/>
                                         <note pname="d" oct="5" dur="16"/>
                                     </beam>
-                                    <note pname="g" oct="5" dur="8" grace="unknown" size="cue" stem.dir="up"/>
+                                    <note pname="g" oct="5" dur="16" grace="unknown" size="cue" stem.dir="up"/>
                                     <beam>
                                         <note pname="f" oct="5" dur="8"/>
                                         <note pname="e" dur="16" oct="5"/>
@@ -328,10 +328,10 @@
                                 <layer>
                                     <beam>
                                         <note pname="e" oct="5" dur="8"/>
-                                        <note pname="f" oct="5" dur="16" xml:id="m5_s1_e2"/>
-                                        <note pname="e" oct="5" dur="16"/>
-                                        <note pname="d" oct="5" dur="16"/>
-                                        <note pname="e" oct="5" dur="16" xml:id="m5_s1_e5"/>
+                                        <note pname="f" oct="5" dur="32" xml:id="m5_s1_e2"/>
+                                        <note pname="e" oct="5" dur="32"/>
+                                        <note pname="d" oct="5" dur="32"/>
+                                        <note pname="e" oct="5" dur="32" xml:id="m5_s1_e5"/>
                                     </beam>
                                     <note pname="e" oct="5" dots="1" dur="4" xml:id="m5_s1_e6"/>
                                     <note pname="d" oct="5" dur="8"/>
@@ -341,10 +341,10 @@
                                 <layer>
                                     <beam>
                                         <note pname="d" oct="5" dur="8" xml:id="m5_s2_e1"/>
-                                        <note pname="d" oct="5" dur="16" xml:id="m5_s2_e2"/>
-                                        <note pname="c" oct="5" dur="16"/>
-                                        <note pname="b" oct="5" dur="16" accid="n"/>
-                                        <note pname="c" oct="5" dur="16" xml:id="m5_s2_e5"/>
+                                        <note pname="d" oct="5" dur="32" xml:id="m5_s2_e2"/>
+                                        <note pname="c" oct="5" dur="32"/>
+                                        <note pname="b" oct="5" dur="32" accid="n"/>
+                                        <note pname="c" oct="5" dur="32" xml:id="m5_s2_e5"/>
                                     </beam>
                                     <note pname="c" oct="5" dots="1" dur="4" xml:id="m5_s2_e6"/>
                                     <note pname="b" oct="5" dur="8" accid="n"/>
