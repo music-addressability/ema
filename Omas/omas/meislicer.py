@@ -268,9 +268,11 @@ class MeiSlicer(object):
 
                                 if el.hasAttribute("dur") and not el.hasAttribute("grace"):
                                     dur = self._calculateDur(el, meter)
+                                    # TODO still problems with non-consecutive beat ranges
+                                    # e.g. @1@3
                                     # exclude descendants at and in between tstamps
                                     if cur_beat >= tstamp_first:
-                                        if cur_beat <= tstamp_final:
+                                        if cur_beat <= tstamp_final + 1:
                                             marked_as_selected.add(el)
                                             if is_first_match and "cut" in co:
                                                 marked_for_cutting.add(el)
@@ -283,7 +285,7 @@ class MeiSlicer(object):
 
                                             # Cut the duration of the last element
                                             # if completeness = cut
-                                            needs_cut = cur_beat+dur > tstamp_final+1
+                                            needs_cut = cur_beat+dur > tstamp_final+2
                                             if needs_cut and "cut" in co:
                                                 marked_for_cutting.add(el)
                                                 is_first_match = False
