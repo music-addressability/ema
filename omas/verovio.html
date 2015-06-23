@@ -42,14 +42,14 @@
 <script type="text/javascript">
 var mei = sessionStorage.getItem("MEI");
 if (mei == null) {
-  $("#info").append("<p>No MEI to display. <a href='/omas'>Go back</a>.</p>");
+  $("#info").append("<p>No MEI to display. <a href='index.html'>Go back</a>.</p>");
 }
 else {
   var expr = sessionStorage.getItem("URL");
   var urlInfo = '<div class="bs-callout bs-callout-success">\
     <h4>Displaying selection URL</h4>\
     <a href="'+expr+'">'+expr+'</a>\
-  </div><p><a href="/omas">Make another selection</a></p>';
+  </div><p><a href="index.html">Make another selection</a></p>';
   $("#info").append(urlInfo);
   var vrvToolkit = new verovio.toolkit();
   scale = 50;
