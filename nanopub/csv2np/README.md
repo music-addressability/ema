@@ -1,6 +1,6 @@
-# csv2np: CSV to Nanopublication
+# CSV to Nanopublication
 
-This Python 3 script converts a csv export of the observation database from 
+The Python 3 script `csv2np` converts a csv export of the observation database from 
 [digitalduchemin.org](http://digitalduchemin.org) to a nanopublication datamodel. **It will only work with that export.**
 
 Each observation is converted to a jsonld file containing a Nanopublication graph.
@@ -21,4 +21,14 @@ Then run the script by providing the input CSV file and the output directory for
 
 ```
 python csv2np.py PATH_TO_CSV PATH_TO_OUTPUT_DIR
+```
+
+The default output is Trig, but other foramats can be output as well. Run `python csv2np.py --help` for more info.
+
+## POSTing Trig nanopubs to a Nanopublication server
+
+The script `np2srv` is a simple program for POSTing the Trig output of `csv2np` to a Nanopublication server on the web.
+
+```
+python np2srv.py PATH_TO_OUTPUT_DIR URL_TO_SERVER
 ```
