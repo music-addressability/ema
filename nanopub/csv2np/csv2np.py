@@ -20,7 +20,7 @@ logging.getLogger("rdflib").setLevel(logging.ERROR)
 
 
 parser = argparse.ArgumentParser(description='Convert a digitalduchemin.org \
-observation CSV export to a nanopublication graph.')
+observations CSV export to nanopublication graphs.')
 parser.add_argument('csv_path', metavar='CSV', type=str, nargs='?',
                     help='path to the CSV file')
 parser.add_argument('out_dir', metavar='output', type=str, nargs='?',
@@ -33,7 +33,10 @@ parser.add_argument('--nquads', '-n', dest='format', action='store_const',
                     help='serialize as N-Quads')
 parser.add_argument('--trix', '-t', dest='format', action='store_const',
                     const="trix",
-                    help='serialize as TriX (default)')
+                    help='serialize as TriX')
+parser.add_argument('--trig', '-g', dest='format', action='store_const',
+                    const="trig",
+                    help='serialize as Trig (default)')
 
 args = parser.parse_args()
 
@@ -269,6 +272,9 @@ class Nanopub(object):
     def trix(self, indent=2):
         return self.g.serialize(format='trix')
 
+    def trig(self):
+        return self.g.serialize(format='trig')
+
 
 def write_np(s, npid, formt):
     filename = filename = "np{0}.{1}".format(npid, formt)
@@ -285,12 +291,15 @@ with open(csv_path) as csvfile:
             n = Nanopub(analysis, npid)
             if args.format == "trix":
                 s = n.trix()
-            if args.format == "nquads":
-                s = n.trix()
+            elif args.format == "trig":
+                s = n.trig()
+            elif args.format == "nquads":
+                s = n.nquads()
             elif args.format == "jsonld":
                 s = n.jsonld()
             else:
-                s = n.trix()
+                args.format = "trig"
+                s = n.trig()
 
             write_np(s, npid, args.format)
 
