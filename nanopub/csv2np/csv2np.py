@@ -8,6 +8,7 @@ import urllib.parse
 import argparse
 import logging
 import time
+import re
 from uuid import uuid4
 from datetime import datetime, timedelta
 from rdflib import ConjunctiveGraph, Namespace, URIRef, Literal
@@ -29,7 +30,7 @@ parser.add_argument('--jsonld', '-j', dest='format', action='store_const',
                     const="jsonld",
                     help='serialize as JSON-LD')
 parser.add_argument('--nquads', '-n', dest='format', action='store_const',
-                    const="nquads",
+                    const="nq",
                     help='serialize as N-Quads')
 parser.add_argument('--trix', '-t', dest='format', action='store_const',
                     const="trix",
@@ -45,7 +46,7 @@ out_dir = args.out_dir
 os.makedirs(out_dir, exist_ok=True)
 csv_headers = []
 
-DDC = Namespace('http://digitalduchemin.org/')
+DDC = Namespace('http://digitalduchemin.org/np/')
 NP = Namespace('http://www.nanopub.org/nschema#')
 PROV = Namespace('http://www.w3.org/ns/prov#')
 OA = Namespace("http://www.w3.org/ns/oa#")
@@ -205,54 +206,59 @@ class Nanopub(object):
         self.g.add((observation, OA.hasBody, tag, self.assertion))
 
     def buildEMAurl(self):
-        d = self.data
-        start_m = d[csv_headers.index("start_measure")]
-        final_m = d[csv_headers.index("stop_measure")]
-        measures = "{0}-{1}".format(start_m, final_m)
-        staves = []
-
-        staff_data = [
-            csv_headers.index("cadence_role_cantz"),
-            csv_headers.index("cadence_role_tenz"),
-            csv_headers.index("voices_53_lo"),
-            csv_headers.index("voices_53_up"),
-            csv_headers.index("voices_p3_lo"),
-            csv_headers.index("voices_p3_up"),
-            csv_headers.index("voices_p6_lo"),
-            csv_headers.index("voices_p6_up"),
-            csv_headers.index("voice_role_up1_nim"),
-            csv_headers.index("voice_role_lo1_nim"),
-            csv_headers.index("voice_role_up2_nim"),
-            csv_headers.index("voice_role_lo2_nim"),
-            csv_headers.index("voice_role_dux1"),
-            csv_headers.index("voice_role_com1"),
-            csv_headers.index("voice_role_dux2"),
-            csv_headers.index("voice_role_com2"),
-            csv_headers.index("voice_role_above"),
-            csv_headers.index("voice_role_below"),
-            csv_headers.index("voice_role_fifth"),
-            csv_headers.index("voice_role_fourth"),
-            csv_headers.index("voice_role_un_oct")]
-
-        for s in staff_data:
-            r_id = self.roleToIndex(d[s])
-            if r_id and r_id not in staves:
-                staves.append(r_id)
-
-        # remove duplicate values
-        staves = list(set(staves))
-        staves_str = ",".join(str(x) for x in staves)
-
-        if not staves_str:
-            staves_str = "all"
+        d = self.data        
 
         dc_id = d[csv_headers.index("composition_number")][:6].upper()
         dcfile = "http://digitalduchemin.org/mei/{0}.xml".format(dc_id)
         dcfile = urllib.parse.quote(dcfile, "")
 
-        return "http://ema.mith.org/{0}/{1}/{2}/@all".format(dcfile,
-                                                             measures,
-                                                             staves_str)
+        if "EMA" in csv_headers:
+            ema_expr = d[csv_headers.index("EMA")]
+        else:
+            start_m = d[csv_headers.index("start_measure")]
+            final_m = d[csv_headers.index("stop_measure")]
+            measures = "{0}-{1}".format(start_m, final_m)
+            staves = []
+
+            staff_data = [
+                csv_headers.index("cadence_role_cantz"),
+                csv_headers.index("cadence_role_tenz"),
+                csv_headers.index("voices_53_lo"),
+                csv_headers.index("voices_53_up"),
+                csv_headers.index("voices_p3_lo"),
+                csv_headers.index("voices_p3_up"),
+                csv_headers.index("voices_p6_lo"),
+                csv_headers.index("voices_p6_up"),
+                csv_headers.index("voice_role_up1_nim"),
+                csv_headers.index("voice_role_lo1_nim"),
+                csv_headers.index("voice_role_up2_nim"),
+                csv_headers.index("voice_role_lo2_nim"),
+                csv_headers.index("voice_role_dux1"),
+                csv_headers.index("voice_role_com1"),
+                csv_headers.index("voice_role_dux2"),
+                csv_headers.index("voice_role_com2"),
+                csv_headers.index("voice_role_above"),
+                csv_headers.index("voice_role_below"),
+                csv_headers.index("voice_role_fifth"),
+                csv_headers.index("voice_role_fourth"),
+                csv_headers.index("voice_role_un_oct")]
+
+            for s in staff_data:
+                r_id = self.roleToIndex(d[s])
+                if r_id and r_id not in staves:
+                    staves.append(r_id)
+
+            # remove duplicate values
+            staves = list(set(staves))
+            staves_str = ",".join(str(x) for x in staves)
+
+            if not staves_str:
+                staves_str = "all"
+
+            ema_expr = "{0}/{1}/@all".format(measures,staves_str)
+
+        return "http://mith.umd.edu/ema/{0}/{1}".format(dcfile,
+                                                             ema_expr)
 
     def roleToIndex(self, r):
         r = r.lower()
@@ -293,7 +299,7 @@ with open(csv_path) as csvfile:
                 s = n.trix()
             elif args.format == "trig":
                 s = n.trig()
-            elif args.format == "nquads":
+            elif args.format == "nq":
                 s = n.nquads()
             elif args.format == "jsonld":
                 s = n.jsonld()
