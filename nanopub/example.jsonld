@@ -1,59 +1,143 @@
-{
-  "@context": {
-    "ema" : "http://ema.mith.org/#",
-    "np" : "http://www.nanopub.org/nschema#",
-    "prov" : "http://www.w3.org/ns/prov#",
-    "oa" : "http://www.w3.org/ns/oa#",
-    "dctypes" : "http://purl.org/dc/dcmitype/",
-    "foaf" : "http://xmlns.com/foaf/0.1/",
-    "cnt" : "http://www.w3.org/2011/content#"
-  },
-  "@graph": [
-    {
-      "@id" : "ema:DCEx1",
-      "@type" : "np:Nanopublication",
-      "np:hasAssertion" : {"@id" : "ema:DCEx1Assertion"},
-      "np:hasProvenance" : {"@id" : "ema:DCEx1Provenance"},
-      "np:hasPublicationInfo" : {"@id" : "ema:DCEx1PubInfo"}
-    },
-    {
-      "@id" : "ema:DCEx1Assertion",
-      "oa:hasBody" : {
-        "@type" : "dctypes:Text",
-        "cnt:ContentAsText" : "Non imitative duo"
-      },
-      "oa:hasTarget" : [
-        {
-        "@type" : "oa:SpecificResource",
-        "oa:hasSource" : "http://ema.mith.org/http%3A%2F%2Fdigitalduchemin.org%2Fmei%2FDC0508.xml/1-2…"
-        },
-        {
-          "@type" : "oa:SpecificResource",
-          "oa:hasSource" : "http://ema.mith.org/http%3A%2F%2Fdigitalduchemin.org%2Fmei%2FDC0407.xml/3-4…"
-        }
-      ],
-      "oa:annotatedBy" : {"@id" : "ema:DCEx1Agent"}
-    },
-    {
-      "@id" : "ema:DCEx1Provenance",
-      "@graph" : {
-        "ema:DCEx1Assertion" : {
-          "prov:wasAttributedTo" : {"@id" : "ema:DCEx1Agent"}
-        }
-      }
-    },
-    {
-      "@id" : "ema:DCEx1PubInfo",
-      "@graph" : {
-        "ema:DCEx1" : {
-          "prov:wasAttributedTo" : "EMA Demo"
-        }  
-      }
-    },
-    {
-      "@id" : "ema:DCEx1Agent",
-      "@type" : "foaf:Person",
-      "foaf:name" : "Freedman, Richard"
-    }
-  ]
-}
+
+[ {
+  "@graph" : [ {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#observation",
+    "@type" : [ "http://www.w3.org/ns/oa#Annotation" ],
+    "http://www.w3.org/ns/oa#annotatedBy" : [ {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#analyst"
+    } ],
+    "http://www.w3.org/ns/oa#hasBody" : [ {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#other_formulas"
+    }, {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#other_pres_type"
+    }, {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#voice_role_below"
+    }, {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#voice_role_com1"
+    }, {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#voice_role_dux1"
+    }, {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#voice_role_un_oct"
+    } ],
+    "http://www.w3.org/ns/oa#hasTarget" : [ {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#target"
+    } ],
+    "http://www.w3.org/ns/oa#motivatedBy" : [ {
+      "@id" : "http://www.w3.org/ns/oa#identifying"
+    }, {
+      "@id" : "http://www.w3.org/ns/oa#tagging"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#other_formulas",
+    "@type" : [ "http://www.w3.org/ns/oa#Tag" ],
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#value" : [ {
+      "@value" : "Romanesca"
+    } ],
+    "http://www.w3.org/2000/01/rdf-schema#label" : [ {
+      "@value" : "other_formulas"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#other_pres_type",
+    "@type" : [ "http://www.w3.org/ns/oa#Tag" ],
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#value" : [ {
+      "@value" : "FI"
+    } ],
+    "http://www.w3.org/2000/01/rdf-schema#label" : [ {
+      "@value" : "other_pres_type"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#target",
+    "@type" : [ "http://www.w3.org/ns/oa#SpecificResource" ],
+    "http://www.w3.org/ns/oa#hasSource" : [ {
+      "@id" : "http://mith.umd.edu/ema/http%3A%2F%2Fdigitalduchemin.org%2Fmei%2FDC0308.xml/28-29/1+3/@all"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#voice_role_below",
+    "@type" : [ "http://www.w3.org/ns/oa#Tag" ],
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#value" : [ {
+      "@value" : "T"
+    } ],
+    "http://www.w3.org/2000/01/rdf-schema#label" : [ {
+      "@value" : "voice_role_below"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#voice_role_com1",
+    "@type" : [ "http://www.w3.org/ns/oa#Tag" ],
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#value" : [ {
+      "@value" : "T"
+    } ],
+    "http://www.w3.org/2000/01/rdf-schema#label" : [ {
+      "@value" : "voice_role_com1"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#voice_role_dux1",
+    "@type" : [ "http://www.w3.org/ns/oa#Tag" ],
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#value" : [ {
+      "@value" : "S"
+    } ],
+    "http://www.w3.org/2000/01/rdf-schema#label" : [ {
+      "@value" : "voice_role_dux1"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#voice_role_un_oct",
+    "@type" : [ "http://www.w3.org/ns/oa#Tag" ],
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#value" : [ {
+      "@value" : "T"
+    } ],
+    "http://www.w3.org/2000/01/rdf-schema#label" : [ {
+      "@value" : "voice_role_un_oct"
+    } ]
+  } ],
+  "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#assertion"
+}, {
+  "@graph" : [ {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY",
+    "@type" : [ "http://www.nanopub.org/nschema#Nanopublication" ],
+    "http://www.nanopub.org/nschema#hasAssertion" : [ {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#assertion"
+    } ],
+    "http://www.nanopub.org/nschema#hasProvenance" : [ {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#provenance"
+    } ],
+    "http://www.nanopub.org/nschema#hasPublicationInfo" : [ {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#pubinfo"
+    } ]
+  } ],
+  "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#head"
+}, {
+  "@graph" : [ {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#analyst",
+    "@type" : [ "http://www.w3.org/ns/prov#Agent", "http://www.w3.org/ns/prov#Person" ],
+    "http://xmlns.com/foaf/0.1/name" : [ {
+      "@value" : "Magruder, Katherine"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#assertion",
+    "http://www.w3.org/ns/prov#generatedAtTime" : [ {
+      "@type" : "http://www.w3.org/2001/XMLSchema#dateTime",
+      "@value" : "2012-07-23T20:07:00-05:00"
+    } ],
+    "http://www.w3.org/ns/prov#wasAttributedTo" : [ {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#analyst"
+    } ]
+  } ],
+  "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#provenance"
+}, {
+  "@graph" : [ {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY",
+    "http://www.w3.org/ns/prov#generatedAtTime" : [ {
+      "@type" : "http://www.w3.org/2001/XMLSchema#dateTime",
+      "@value" : "2015-11-17T16:09:46-05:00"
+    } ],
+    "http://www.w3.org/ns/prov#wasAttributedTo" : [ {
+      "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#emaresp"
+    } ]
+  }, {
+    "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#emaresp",
+    "@type" : [ "http://www.w3.org/ns/prov#Agent", "http://www.w3.org/ns/prov#Organization" ],
+    "http://xmlns.com/foaf/0.1/name" : [ {
+      "@value" : "Enhanching Music Notation Addressability Project"
+    } ]
+  } ],
+  "@id" : "http://digitalduchemin.org/np/np3487.RAy6WBhrJFLDt0zSbZ75Ivcp902wS5u3mBluf6yqamSVY#pubinfo"
+} ]
