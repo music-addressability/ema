@@ -254,8 +254,8 @@ class MeiSlicer(object):
                         co = self.ema_exp.completenessOptions
 
                         # check that the requested beats actually fit in the meter
-                        if tstamp_first > int(meter["count"]) or \
-                           tstamp_final > int(meter["count"]):
+                        if tstamp_first > int(meter["count"])+1 or \
+                           tstamp_final > int(meter["count"])+1:
                             raise BadApiRequest(
                                 "Request beat is out of measure bounds")
 
@@ -272,7 +272,7 @@ class MeiSlicer(object):
                                     # e.g. @1@3
                                     # exclude descendants at and in between tstamps
                                     if cur_beat >= tstamp_first:
-                                        if cur_beat <= tstamp_final + 1:
+                                        if cur_beat <= tstamp_final:
                                             marked_as_selected.add(el)
                                             if is_first_match and "cut" in co:
                                                 marked_for_cutting.add(el)
@@ -285,7 +285,7 @@ class MeiSlicer(object):
 
                                             # Cut the duration of the last element
                                             # if completeness = cut
-                                            needs_cut = cur_beat+dur > tstamp_final+2
+                                            needs_cut = cur_beat+dur > tstamp_final+1
                                             if needs_cut and "cut" in co:
                                                 marked_for_cutting.add(el)
                                                 is_first_match = False
