@@ -188,7 +188,7 @@ class EmaSingleRangeExpression(object):
         """Return list of request beats (timestamps) organized by
            staff and measure """
 
-        # buils compiled expression
+        # builds compiled expression
         compiled_staves = []
 
         beats_by_measure = []
@@ -199,7 +199,7 @@ class EmaSingleRangeExpression(object):
             info = self.docInfo["beats"]
             closestDef = str(min(info, key=lambda x: abs(int(x)-int(m-1))))
 
-            end = str(info[closestDef]["count"])
+            end = str(info[closestDef]["count"]+1)
 
             all_b = "1-{0}".format(end)
 
