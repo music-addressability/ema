@@ -1,6 +1,8 @@
 import requests
 from urllib import unquote
 import re
+import tempfile
+import os
 
 from flask.ext.api import FlaskAPI
 from flask.ext.api import status
@@ -17,8 +19,11 @@ from omas.exceptions import CannotAccessRemoteMEIException
 from omas.exceptions import UnknownMEIReadException
 from omas.exceptions import UnsupportedEncoding
 
+from flask.ext.cors import CORS
+
 
 app = FlaskAPI(__name__)
+CORS(app)
 
 app.config['DEFAULT_RENDERERS'] = [
     'flask.ext.api.renderers.JSONRenderer',
@@ -114,6 +119,26 @@ def index():
     methods=["GET"])
 def address(meipath, measures, staves, beats, completeness=None):
     mei_as_text = get_external_mei(meipath)
+
+    # If an MEI file is request in full (all/all/@all), just return it
+    if measures == "all" and staves == "all" and beats == "@all":
+        # this will write it to a temporary directory automatically
+        tdir = tempfile.mkdtemp()
+        fname = "full.mei"
+        filename = os.path.join(tdir, fname)
+        try:
+            file = open(filename, 'w')
+            file.write(mei_as_text)
+            file.close()
+        except CannotWriteMEIException as ex:
+            return (
+                {"message": ex.message},
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return send_file(filename,
+                         as_attachment=True,
+                         mimetype="application/xml")
 
     try:
         parsed_mei = meiinfo.read_MEI(mei_as_text).getMeiDocument()
