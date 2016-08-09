@@ -1,3 +1,4 @@
+![EMA logo](http://mith.umd.edu/wp-content/uploads/2014/07/header_ema.png) 
 # Enhancing Music Notation Addressability (EMA)
 
 This is the GitHub repository for the NEH funded project Enhancing Music Notation Addressability (grant number: HD-51836-14). For more information on the project as a whole, read the [end-of-project white paper](https://securegrants.neh.gov/publicquery/Download.aspx?data=EbwGdSyLkD7zoB3W75cvd%2bXST%2bWypC%2blXFsHQXsXqfJI0drM3OQ%2b3faX2S%2ftHGB3jk8Em52HNbzrN1QYxpAied7tKmRpDL38HbpRGCl421aDODOzEOuNKCNN6eshRCiemwrjR%2fVlC%2bTRfuoCkm3v7w%3d%3d).
