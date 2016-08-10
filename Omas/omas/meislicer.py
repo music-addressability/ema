@@ -272,7 +272,10 @@ class MeiSlicer(object):
                                     # e.g. @1@3
                                     # exclude descendants at and in between tstamps
                                     if cur_beat >= tstamp_first:
-                                        if cur_beat <= tstamp_final:
+                                        # We round to 4 decimal places to avoid issues caused by
+                                        # tuplet-related calculations, which are admittedly not
+                                        # well expressed in floating numbers.
+                                        if round(cur_beat, 4) <= round(tstamp_final, 4):
                                             marked_as_selected.add(el)
                                             if is_first_match and "cut" in co:
                                                 marked_for_cutting.add(el)
@@ -634,6 +637,21 @@ class MeiSlicer(object):
         for d in range(1, int(dots)+1):
             dot_dur = dot_dur * 2
             relative_dur += float(int(meter["unit"]) / dot_dur)
+
+        # Is this element contained in a tuplet element?
+        # (TODO account for tupletspan)
+        if element.hasAncestor("tuplet"):
+            tupl = element.getAncestor("tuplet")
+
+            numbase = tupl.getAttribute("numbase")
+            num = tupl.getAttribute("num")
+
+            if not num or not numbase:
+                raise UnsupportedEncoding(
+                    "Cannot understand tuplet beat: both @num and @numbase must be present")
+            else:
+                tupl_ratio = float(numbase.getValue()) / float(num.getValue())
+                relative_dur = relative_dur * tupl_ratio
 
         return relative_dur
 
