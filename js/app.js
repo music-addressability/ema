@@ -91,7 +91,8 @@ OmasClient.App = Backbone.View.extend({
     "submit #requestInfo" : "getInfo",
     "click #renderAllV" : "renderVerovio",
     "click #addstaves" : "addStaves",
-    "click #resetstaves" : "resetStaves"
+    "click #resetstaves" : "resetStaves",
+    "click #tocontinuo": "sendToContinuo"
   },
 
   getInfo: function (e) {
@@ -101,6 +102,14 @@ OmasClient.App = Backbone.View.extend({
     new OmasClient.InfoView({model: 
       new OmasClient.Info({url: "http://mith.umd.edu/ema/"+encodedUrl+"/info.json"})
     });
+  },
+
+  sendToContinuo: function (e) {
+    e.preventDefault();
+    url = $("#meiUrl").val();
+    encodedUrl = encodeURIComponent(url);   
+    console.log(encodedUrl); 
+    window.open($(e.target).attr("href") + encodedUrl, "_blank");
   },
 
   renderVerovio: function (e) {
