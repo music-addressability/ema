@@ -1,4 +1,4 @@
-# Music Addressability API
+# Enhancing Music Notation Addressability API
 
 ## Status of this Document
 
