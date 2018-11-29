@@ -1,11 +1,11 @@
 import requests
-from urllib import unquote
+from urllib.parse import unquote
 import re
 import tempfile
 import os
 
-from flask.ext.api import FlaskAPI
-from flask.ext.api import status
+from flask_api import FlaskAPI
+from flask_api import status
 from werkzeug.routing import BaseConverter
 from werkzeug.routing import ValidationError
 from flask import send_file
@@ -19,19 +19,19 @@ from omas.exceptions import CannotAccessRemoteMEIException
 from omas.exceptions import UnknownMEIReadException
 from omas.exceptions import UnsupportedEncoding
 
-from flask.ext.cors import CORS
+from flask_cors import CORS
 
 
 app = FlaskAPI(__name__)
 CORS(app)
 
 app.config['DEFAULT_RENDERERS'] = [
-    'flask.ext.api.renderers.JSONRenderer',
-    'flask.ext.api.renderers.BrowsableAPIRenderer',
+    'flask_api.renderers.JSONRenderer',
+    'flask_api.renderers.BrowsableAPIRenderer',
 ]
 
 app.config['DEFAULT_PARSERS'] = [
-    'flask.ext.api.parsers.JSONParser',
+    'flask_api.parsers.JSONParser',
 ]
 
 

@@ -1,12 +1,13 @@
-from meiinfo import MusDocInfo
-from emaexpression import EmaExpression
+import re
+
+from pymei import MeiElement, MeiAttribute
+
+from omas.emaexpression import EmaExpression
 from omas.exceptions import BadApiRequest
 from omas.exceptions import UnsupportedEncoding
-from meielementset import MeiElementSet
-
-import re
-from pymei import MeiElement, MeiAttribute
-from pymeiext import getClosestStaffDefs, moveTo
+from omas.meielementset import MeiElementSet
+from omas.meiinfo import MusDocInfo
+from omas.pymeiext import getClosestStaffDefs, moveTo
 
 
 class MeiSlicer(object):
