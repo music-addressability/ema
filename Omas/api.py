@@ -127,7 +127,7 @@ def address(meipath, measures, staves, beats, completeness=None):
         fname = "full.mei"
         filename = os.path.join(tdir, fname)
         try:
-            file = open(filename, 'w')
+            file = open(filename, 'wb')
             file.write(mei_as_text)
             file.close()
         except CannotWriteMEIException as ex:
