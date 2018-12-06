@@ -35,7 +35,7 @@ class MeiSlicer(object):
         # parse general beats information
         self.beatsInfo = self.docInfo["beats"]
         self.timeChanges = self.beatsInfo.keys()
-        self.timeChanges.sort(key=int)
+        self.timeChanges = sorted(self.timeChanges, key=int)
 
         # Process measure ranges and store boundary measures
         boundary_mm = []
