@@ -33,7 +33,7 @@ class MeiSlicer(object):
             provided a EMA expression of measures, staves, and beats."""
 
         # if highlighting, create annot
-        print self.ema_exp.completenessOptions
+        print(self.ema_exp.completenessOptions)
         if "highlight" in self.ema_exp.completenessOptions:
             # create annotation element for highlights
             last_score_el = self.doc.getElementsByName("score")[-1]
