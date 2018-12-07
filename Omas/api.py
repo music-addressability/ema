@@ -39,7 +39,7 @@ app.config['DEFAULT_PARSERS'] = [
 class MeasuresConverter(BaseConverter):
 
     def __init__(self, url_map):
-        super(MeasuresConverter, self).__init__(url_map)
+        super().__init__(url_map)
 
     def to_python(self, value):
         exp = r'(?:^((all|((start|end|\d+)(-(start|end|\d+))?))+(,|$))+)'
@@ -55,7 +55,7 @@ class MeasuresConverter(BaseConverter):
 class StavesConverter(BaseConverter):
 
     def __init__(self, url_map):
-        super(StavesConverter, self).__init__(url_map)
+        super().__init__(url_map)
 
     def to_python(self, value):
         # Testing the regular expression here because
@@ -73,7 +73,7 @@ class StavesConverter(BaseConverter):
 class BeatsConverter(BaseConverter):
 
     def __init__(self, url_map):
-        super(BeatsConverter, self).__init__(url_map)
+        super().__init__(url_map)
 
     def to_python(self, value):
         exp = r"""(?:^((@(all\+?|((start|end|\d+(\.\d+)?)
@@ -85,6 +85,7 @@ class BeatsConverter(BaseConverter):
 
     def to_url(self, value):
         return value
+
 
 app.url_map.converters['staves'] = StavesConverter
 app.url_map.converters['measures'] = MeasuresConverter
@@ -105,7 +106,7 @@ def get_external_mei(meipath):
                 r.status_code)
             raise UnknownMEIReadException(msg)
 
-    return r.content
+    return r.text
 
 
 @app.route('/', methods=['GET'])
@@ -129,7 +130,7 @@ def address(meipath, measures, staves, beats, completeness=None):
         fname = "full.mei"
         filename = os.path.join(tdir, fname)
         try:
-            file = open(filename, 'wb')
+            file = open(filename, 'w')
             file.write(mei_as_text)
             file.close()
         except CannotWriteMEIException as ex:
