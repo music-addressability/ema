@@ -95,7 +95,7 @@ app.url_map.converters['beats'] = BeatsConverter
 def get_external_mei(meipath):
     pattern_to_strip = r'^/?http(%3A|%3a|:)(%2F|%2f|/)(%2F|%2f|/)?'
     meipath_stripped = re.sub(pattern_to_strip, '', meipath, count=1)
-    r = requests.get('https://' + unquote(meipath_stripped), timeout=15)
+    r = requests.get('http://' + unquote(meipath_stripped), timeout=15)
     # Exeunt stage left if something went wrong.
     if r.status_code != requests.codes.ok:
         if r.status_code == 404:
