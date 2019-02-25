@@ -1,2 +1,5 @@
 *.pyc
 Omas/Omas.egg-info
+*~
+/Omas/uwsgi_params
+*.save
