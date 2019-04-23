@@ -202,5 +202,5 @@ def information(meipath):
 
 if __name__ == "__main__":
     host = os.environ.get('OMAS_HOST', '127.0.0.1')
-    port = os.environ.get('OMAS_PORT', 5000)
+    port = int(os.environ.get('OMAS_PORT', 5000))
     app.run(host=host, port=port, debug=True)
