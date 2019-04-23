@@ -3,7 +3,14 @@
 
 This web service implements the Music Addressability API.
 
-## Setup
+## Run
+
+The easiest way to run your own instance of Omas is with Docker. For example
+this will start up an instance listening on http://0.0.0.0:5000
+
+    docker run -p 0.0.0.0:5000:5000 umdmith/omas
+
+## Build
 
 Most requirements for Omas can be installed with pip:
 
