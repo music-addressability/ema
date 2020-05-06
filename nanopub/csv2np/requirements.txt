@@ -2,5 +2,5 @@ isodate==0.5.1
 pyparsing==2.0.3
 rdflib==4.2.1
 rdflib-jsonld==0.3
-requests==2.7.0
+requests==2.20.0
 git+https://github.com/raffazizzi/trustyuri-python.git#egg=trustyuri
