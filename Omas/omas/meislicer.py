@@ -1,12 +1,13 @@
-from meiinfo import MusDocInfo
-from emaexpression import EmaExpression
+import re
+
+from pymei import MeiElement, MeiAttribute
+
+from omas.emaexpression import EmaExpression
 from omas.exceptions import BadApiRequest
 from omas.exceptions import UnsupportedEncoding
-from meielementset import MeiElementSet
-
-import re
-from pymei import MeiElement, MeiAttribute
-from pymeiext import getClosestStaffDefs, moveTo
+from omas.meielementset import MeiElementSet
+from omas.meiinfo import MusDocInfo
+from omas.pymeiext import getClosestStaffDefs, moveTo
 
 
 class MeiSlicer(object):
@@ -31,10 +32,21 @@ class MeiSlicer(object):
         """ Return a modified MEI doc containing the selected notation
             provided a EMA expression of measures, staves, and beats."""
 
+        # if highlighting, create annot
+        print(self.ema_exp.completenessOptions)
+        if "highlight" in self.ema_exp.completenessOptions:
+            # create annotation element for highlights
+            last_score_el = self.doc.getElementsByName("score")[-1]
+            annot = MeiElement("annot")
+            annot.addAttribute("type", "ema_highlight")
+            annot.addAttribute("plist", "")
+            last_score_el.addChild(annot)
+
+            self.highlight_el = annot;
+
         # parse general beats information
         self.beatsInfo = self.docInfo["beats"]
-        self.timeChanges = self.beatsInfo.keys()
-        self.timeChanges.sort(key=int)
+        self.timeChanges = sorted(self.beatsInfo.keys(), key=int)
 
         # Process measure ranges and store boundary measures
         boundary_mm = []
@@ -46,24 +58,25 @@ class MeiSlicer(object):
         # Recursively remove remaining data in between
         # measure ranges before returning modified doc
 
-        # First remove measures in between
-        to_remove = []
-        middle_boundaries = boundary_mm[1:-1]
-        for bm in middle_boundaries[::2]:
-            i = middle_boundaries.index(bm)
-            try:
-                start_m = self.measures[bm.idx-1]
-                start_m_pos = start_m.getPositionInDocument()
-                end_m = self.measures[middle_boundaries[i+1].idx-1]
-                end_m_pos = end_m.getPositionInDocument()
-                for el in self.flat_doc[start_m_pos+1:end_m_pos]:
-                    if el.hasAncestor("measure"):
-                        if el.getAncestor("measure").getId() != start_m.getId():
+        if "highlight" not in self.ema_exp.completenessOptions:
+            # First remove measures in between 
+            to_remove = []
+            middle_boundaries = boundary_mm[1:-1]
+            for bm in middle_boundaries[::2]:
+                i = middle_boundaries.index(bm)
+                try:
+                    start_m = self.measures[bm.idx-1]
+                    start_m_pos = start_m.getPositionInDocument()
+                    end_m = self.measures[middle_boundaries[i+1].idx-1]
+                    end_m_pos = end_m.getPositionInDocument()
+                    for el in self.flat_doc[start_m_pos+1:end_m_pos]:
+                        if el.hasAncestor("measure"):
+                            if el.getAncestor("measure").getId() != start_m.getId():
+                                to_remove.append(el)
+                        else:
                             to_remove.append(el)
-                    else:
-                        to_remove.append(el)
-            except IndexError:
-                pass
+                except IndexError:
+                    pass
 
         m_first = self.measures[boundary_mm[0].idx-1]
         m_final = self.measures[boundary_mm[-1].idx-1]
@@ -132,40 +145,41 @@ class MeiSlicer(object):
                 break
 
         # Recursively remove elements before and after selected measures
-        _removeBefore(m_first)
-        _removeAfter(m_final)
+        if "highlight" not in self.ema_exp.completenessOptions:
+            _removeBefore(m_first)
+            _removeAfter(m_final)
 
-        # Compute closest score definition to start measure of each range
-        b_scoreDef = first_scoreDef
-        for i, bm in enumerate(boundary_mm[::2]):  # list comprehension get only start mm
-            b_measure = self.measures[bm.idx-1]
-            preceding = self.flat_doc_static[:b_measure.getPositionInDocument()]
+            # Compute closest score definition to start measure of each range
+            b_scoreDef = first_scoreDef
+            for i, bm in enumerate(boundary_mm[::2]):  # list comprehension get only start mm
+                b_measure = self.measures[bm.idx-1]
+                preceding = self.flat_doc_static[:b_measure.getPositionInDocument()]
 
-            for el in reversed(preceding):
-                if el.getName() == "scoreDef":
-                    try:
-                        s_id = b_scoreDef.getId()
-                        if not s_id == el.getId():
+                for el in reversed(preceding):
+                    if el.getName() == "scoreDef":
+                        try:
+                            s_id = b_scoreDef.getId()
+                            if not s_id == el.getId():
+                                b_scoreDef = el
+                            # Re-attach computed score definition
+                            sd_copy = MeiElement(b_scoreDef)
+                            _removeUnusedStaffDefs(sd_copy, bm)
+                            b_measure.getParent().addChildBefore(b_measure, sd_copy)
+                        except AttributeError:
                             b_scoreDef = el
-                        # Re-attach computed score definition
-                        sd_copy = MeiElement(b_scoreDef)
-                        _removeUnusedStaffDefs(sd_copy, bm)
-                        b_measure.getParent().addChildBefore(b_measure, sd_copy)
-                    except AttributeError:
-                        b_scoreDef = el
-                    break
+                        break
 
-        for el in to_remove:
-            el.getParent().removeChild(el)
+            for el in to_remove:
+                el.getParent().removeChild(el)
 
-        if "raw" in self.ema_exp.completenessOptions:
-            lca = _findLowestCommonAncestor(m_first, m_final)
-            self.doc.setRootElement(lca)
+            if "raw" in self.ema_exp.completenessOptions:
+                lca = _findLowestCommonAncestor(m_first, m_final)
+                self.doc.setRootElement(lca)
 
-            # re-attach computed score definition if required by
-            # completeness = signature
-            if "signature" in self.ema_exp.completenessOptions:
-                m_first.getParent().addChildBefore(m_first, first_scoreDef)
+                # re-attach computed score definition if required by
+                # completeness = signature
+                if "signature" in self.ema_exp.completenessOptions:
+                    m_first.getParent().addChildBefore(m_first, first_scoreDef)
 
         return self.doc
 
@@ -399,116 +413,140 @@ class MeiSlicer(object):
                                                             break
 
                     # Remove elements marked for removal
-                    for el in marked_for_removal:
-                        el.getParent().removeChild(el)
+                    if "highlight" not in self.ema_exp.completenessOptions:
+                        for el in marked_for_removal:
+                            el.getParent().removeChild(el)
 
-                    # Replace elements marked as spaces with actual spaces,
-                    # unless completion = nospace, then remove the elements.
-                    for el in marked_as_space:
-                        parent = el.getParent()
-                        if "nospace" not in self.ema_exp.completenessOptions:
-                            space = MeiElement("space")
-                            space.setId(el.id)
-                            space.addAttribute(el.getAttribute("dur"))
-                            if el.getAttribute("dots"):
-                                space.addAttribute(el.getAttribute("dots"))
-                            elif el.getChildrenByName("dot"):
-                                dots = str(len(el.getChildrenByName("dot")))
-                                space.addAttribute(MeiAttribute("dots", dots))
-                            parent.addChildBefore(el, space)
-                        el.getParent().removeChild(el)
+                        # Replace elements marked as spaces with actual spaces,
+                        # unless completion = nospace, then remove the elements.
+                        for el in marked_as_space:
+                            parent = el.getParent()
+                            if "nospace" not in self.ema_exp.completenessOptions:
+                                space = MeiElement("space")
+                                space.setId(el.id)
+                                space.addAttribute(el.getAttribute("dur"))
+                                if el.getAttribute("dots"):
+                                    space.addAttribute(el.getAttribute("dots"))
+                                elif el.getChildrenByName("dot"):
+                                    dots = str(len(el.getChildrenByName("dot")))
+                                    space.addAttribute(MeiAttribute("dots", dots))
+                                parent.addChildBefore(el, space)
+                            el.getParent().removeChild(el)
+                    else:
+                        for el in marked_as_selected:
+                            # add to list
+                            if self.highlight_el:
+                                cur_plist = self.highlight_el.getAttribute("plist").getValue()
+                                space = ""
+                                if len(cur_plist) > 0:
+                                    space = " "
+                                val = cur_plist + space + "#" + el.getId()
+                                self.highlight_el.addAttribute("plist", val)
 
                 else:
-                    # Remove this staff and its attached events
-                    staff.getParent().removeChild(staff)
+                    if "highlight" not in self.ema_exp.completenessOptions:
+                        # Remove this staff and its attached events
+                        staff.getParent().removeChild(staff)
 
-                    for el in list(events):
-                        if self._isInStaff(el, s_no):
-                            el.getParent().removeChild(el)
+                        for el in list(events):
+                            if self._isInStaff(el, s_no):
+                                el.getParent().removeChild(el)
 
             # At the first measure, also add relevant multi-measure spanners
             # for each selected staff
             if is_first_m:
-                for evs in spanners.values():
-                    for event_id in evs:
-                        ev = self.doc.getElementById(event_id)
-                        # Spanners starting outside of beat ranges
-                        # may be already gone
-                        if ev:
-                            # Determine staff of event for id changes
-                            for ema_s in ema_m.staves:
-                                staff_no = self._isInStaff(ev, ema_s.number)
+                if "highlight" not in self.ema_exp.completenessOptions:
+                    for evs in spanners.values():
+                        for event_id in evs:
+                            ev = self.doc.getElementById(event_id)
+                            # Spanners starting outside of beat ranges
+                            # may be already gone
+                            if ev:
+                                # Determine staff of event for id changes
+                                for ema_s in ema_m.staves:
+                                    staff_no = self._isInStaff(ev, ema_s.number)
 
-                            if staff_no and staff_no in s_nos:
-                                # If the event is attached to more than one staff, just
-                                # consider it attached to the its first one
-                                staff_no = staff_no[0]
+                                if staff_no and staff_no in s_nos:
+                                    # If the event is attached to more than one staff, just
+                                    # consider it attached to the its first one
+                                    staff_no = staff_no[0]
 
-                                staff = None
-                                for staff_candidate in measure.getDescendantsByName("staff"):
-                                    if staff_candidate.hasAttribute("n"):
-                                        n = int(staff_candidate.getAttribute("n").getValue())
-                                        if n == staff_no:
-                                            staff = staff_candidate
+                                    staff = None
+                                    for staff_candidate in measure.getDescendantsByName("staff"):
+                                        if staff_candidate.hasAttribute("n"):
+                                            n = int(staff_candidate.getAttribute("n").getValue())
+                                            if n == staff_no:
+                                                staff = staff_candidate
 
-                                # Truncate event to start at the beginning of the beat range
-                                if ev.hasAttribute("startid"):
-                                    # Set startid to the first event still on staff,
-                                    # at the first available layer
-                                    try:
-                                        layer = (
-                                            staff.getChildrenByName("layer")
-                                        )
-                                        first_id = layer[0].getChildren()[0].getId()
-                                        ev.getAttribute("startid").setValue("#"+first_id)
-                                    except IndexError:
-                                        msg = """
-                                            Unsupported encoding. Omas attempted to adjust the
-                                            starting point of a selected multi-measure element
-                                            that starts before the selection, but the staff or
-                                            layer could not be located.
-                                            """
-                                        msg = re.sub(r'\s+', ' ', msg.strip())
-                                        raise UnsupportedEncoding(msg)
+                                    # Truncate event to start at the beginning of the beat range
+                                    if ev.hasAttribute("startid"):
+                                        # Set startid to the first event still on staff,
+                                        # at the first available layer
+                                        try:
+                                            layer = (
+                                                staff.getChildrenByName("layer")
+                                            )
+                                            first_id = layer[0].getChildren()[0].getId()
+                                            ev.getAttribute("startid").setValue("#"+first_id)
+                                        except IndexError:
+                                            msg = """
+                                                Unsupported encoding. Omas attempted to adjust the
+                                                starting point of a selected multi-measure element
+                                                that starts before the selection, but the staff or
+                                                layer could not be located.
+                                                """
+                                            msg = re.sub(r'\s+', ' ', msg.strip())
+                                            raise UnsupportedEncoding(msg)
 
-                                if ev.hasAttribute("tstamp"):
-                                    # Set tstamp to first in beat selection
-                                    tstamp_first = 0
-                                    for e_s in ema_m.staves:
-                                        if e_s.number == staff_no:
-                                            tstamp_first = e_s.beat_ranges[0].tstamp_first
-                                    ev.getAttribute("tstamp").setValue(str(tstamp_first))
+                                    if ev.hasAttribute("tstamp"):
+                                        # Set tstamp to first in beat selection
+                                        tstamp_first = 0
+                                        for e_s in ema_m.staves:
+                                            if e_s.number == staff_no:
+                                                tstamp_first = e_s.beat_ranges[0].tstamp_first
+                                        ev.getAttribute("tstamp").setValue(str(tstamp_first))
 
-                                # Truncate to end of range if completeness = cut
-                                # (actual beat cutting will happen when beat ranges are procesed)
-                                if "cut" in self.ema_exp.completenessOptions:
-                                    if ev.hasAttribute("tstamp2"):
-                                        att = ev.getAttribute("tstamp2")
-                                        t2 = att.getValue()
-                                        p = re.compile(r"([1-9]+)(?=m\+)")
-                                        multimeasure = p.match(t2)
-                                        if multimeasure:
-                                            new_val = len(mm) - 1
-                                            att.setValue(p.sub(str(new_val), t2))
+                                    # Truncate to end of range if completeness = cut
+                                    # (actual beat cutting will happen when beat ranges are procesed)
+                                    if "cut" in self.ema_exp.completenessOptions:
+                                        if ev.hasAttribute("tstamp2"):
+                                            att = ev.getAttribute("tstamp2")
+                                            t2 = att.getValue()
+                                            p = re.compile(r"([1-9]+)(?=m\+)")
+                                            multimeasure = p.match(t2)
+                                            if multimeasure:
+                                                new_val = len(mm) - 1
+                                                att.setValue(p.sub(str(new_val), t2))
 
-                                # Otherwise adjust tspan2 value to correct distance.
-                                # E.g. given 4 measures with a spanner originating
-                                # in 1 and ending in 4 and a selection of measures 2 and 3,
-                                # change @tspan2 from 3m+X to 2m+X
-                                else:
-                                    if ev.hasAttribute("tstamp2"):
-                                        att = ev.getAttribute("tstamp2")
-                                        t2 = att.getValue()
-                                        p = re.compile(r"([1-9]+)(?=m\+)")
-                                        multimeasure = p.match(t2)
-                                        if multimeasure:
-                                            dis = evs[event_id]["distance"]
-                                            new_val = int(multimeasure.group(1)) - dis
-                                            att.setValue(p.sub(str(new_val), t2))
+                                    # Otherwise adjust tspan2 value to correct distance.
+                                    # E.g. given 4 measures with a spanner originating
+                                    # in 1 and ending in 4 and a selection of measures 2 and 3,
+                                    # change @tspan2 from 3m+X to 2m+X
+                                    else:
+                                        if ev.hasAttribute("tstamp2"):
+                                            att = ev.getAttribute("tstamp2")
+                                            t2 = att.getValue()
+                                            p = re.compile(r"([1-9]+)(?=m\+)")
+                                            multimeasure = p.match(t2)
+                                            if multimeasure:
+                                                dis = evs[event_id]["distance"]
+                                                new_val = int(multimeasure.group(1)) - dis
+                                                att.setValue(p.sub(str(new_val), t2))
 
-                                # move element to first measure and add it to selected
-                                # events "around" the staff.
-                                ev.moveTo(measure)
+                                    # move element to first measure and add it to selected
+                                    # events "around" the staff.
+                                    ev.moveTo(measure)
+                else:
+                    # Add spanners to annotated selection
+                    for evs in spanners.values():
+                        for event_id in evs:
+                            if self.highlight_el:
+                                cur_plist = self.highlight_el.getAttribute("plist").getValue()
+                                space = ""
+                                if len(cur_plist) > 0:
+                                    space = " "
+                                val = cur_plist + space + "#" + event_id
+                                self.highlight_el.addAttribute("plist", val)
 
         return self.doc
 

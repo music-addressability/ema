@@ -1,11 +1,11 @@
 import requests
-from urllib import unquote
+from urllib.parse import unquote
 import re
 import tempfile
 import os
 
-from flask.ext.api import FlaskAPI
-from flask.ext.api import status
+from flask_api import FlaskAPI
+from flask_api import status
 from werkzeug.routing import BaseConverter
 from werkzeug.routing import ValidationError
 from flask import send_file
@@ -19,19 +19,19 @@ from omas.exceptions import CannotAccessRemoteMEIException
 from omas.exceptions import UnknownMEIReadException
 from omas.exceptions import UnsupportedEncoding
 
-from flask.ext.cors import CORS
+from flask_cors import CORS
 
 
 app = FlaskAPI(__name__)
 CORS(app)
 
 app.config['DEFAULT_RENDERERS'] = [
-    'flask.ext.api.renderers.JSONRenderer',
-    'flask.ext.api.renderers.BrowsableAPIRenderer',
+    'flask_api.renderers.JSONRenderer',
+    'flask_api.renderers.BrowsableAPIRenderer',
 ]
 
 app.config['DEFAULT_PARSERS'] = [
-    'flask.ext.api.parsers.JSONParser',
+    'flask_api.parsers.JSONParser',
 ]
 
 
@@ -39,7 +39,7 @@ app.config['DEFAULT_PARSERS'] = [
 class MeasuresConverter(BaseConverter):
 
     def __init__(self, url_map):
-        super(MeasuresConverter, self).__init__(url_map)
+        super().__init__(url_map)
 
     def to_python(self, value):
         exp = r'(?:^((all|((start|end|\d+)(-(start|end|\d+))?))+(,|$))+)'
@@ -55,7 +55,7 @@ class MeasuresConverter(BaseConverter):
 class StavesConverter(BaseConverter):
 
     def __init__(self, url_map):
-        super(StavesConverter, self).__init__(url_map)
+        super().__init__(url_map)
 
     def to_python(self, value):
         # Testing the regular expression here because
@@ -73,7 +73,7 @@ class StavesConverter(BaseConverter):
 class BeatsConverter(BaseConverter):
 
     def __init__(self, url_map):
-        super(BeatsConverter, self).__init__(url_map)
+        super().__init__(url_map)
 
     def to_python(self, value):
         exp = r"""(?:^((@(all\+?|((start|end|\d+(\.\d+)?)
@@ -86,13 +86,16 @@ class BeatsConverter(BaseConverter):
     def to_url(self, value):
         return value
 
+
 app.url_map.converters['staves'] = StavesConverter
 app.url_map.converters['measures'] = MeasuresConverter
 app.url_map.converters['beats'] = BeatsConverter
 
 
-def get_external_mei(meiaddr):
-    r = requests.get(unquote(meiaddr), timeout=15)
+def get_external_mei(meipath):
+    pattern_to_strip = r'^/?https?(%3A|%3a|:)(%2F|%2f|/)*'
+    meipath_stripped = re.sub(pattern_to_strip, '', meipath, count=1)
+    r = requests.get('https://' + unquote(meipath_stripped), timeout=15)
     # Exeunt stage left if something went wrong.
     if r.status_code != requests.codes.ok:
         if r.status_code == 404:
@@ -103,7 +106,7 @@ def get_external_mei(meiaddr):
                 r.status_code)
             raise UnknownMEIReadException(msg)
 
-    return r.content
+    return r.text
 
 
 @app.route('/', methods=['GET'])
