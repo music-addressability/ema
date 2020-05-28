@@ -11,13 +11,9 @@ The repository collects a number of digital deliverables created during the life
 
 This API specification was created to enable granular selections of portions of music notation regardless of the underlying music notation format. In other words, it defines a way of virtually circling, or addressing, machine-readable music notation.
 
-## Open MEI Addressability Service (Omas)
+## Implementations
 
-This is a Python implementation of the Music Addressability API for the [Music Encoding Initiative](http://music-encoding.org/) format.
-
-The code and more information are available in the directory [`/Omas`](https://github.com/umd-mith/ema/tree/master/Omas).
-
-[Click here for a live demo of the tool](http://mith.us/ema/omas/).
+Example implementations for a number of music notation formats can be found on the [Music Addressability GitHub](https://github.com/music-addressability).
 
 ## Nanopublications
 
